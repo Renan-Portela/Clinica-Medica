@@ -13,6 +13,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import javax.swing.text.MaskFormatter;
+import java.text.ParseException;
 
 public class TelaAgendamento extends JFrame {
     
@@ -83,6 +85,13 @@ public class TelaAgendamento extends JFrame {
         mainPanel.add(lblData);
         
         txtData = new JTextField();
+        try {
+            MaskFormatter dataMask = new MaskFormatter("##/##/####");
+            dataMask.setPlaceholderCharacter('_');
+            txtData = new JFormattedTextField(dataMask);
+        } catch (ParseException e) {
+            txtData = new JTextField(); // fallback
+        }
         txtData.setBounds(130, 150, 120, 25);
         txtData.setToolTipText("dd/MM/yyyy");
         mainPanel.add(txtData);
@@ -190,8 +199,10 @@ public class TelaAgendamento extends JFrame {
             // Parsear data e horario
             LocalDate data;
             try {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                data = LocalDate.parse(txtData.getText().trim(), formatter);
+            	String dataTexto = txtData.getText();
+            	String dataLimpa = dataTexto != null ? dataTexto.trim() : "";
+            	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            	data = LocalDate.parse(dataLimpa, formatter);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Data invalida! Use formato dd/MM/yyyy");
                 return;

@@ -12,6 +12,8 @@ import java.awt.event.ActionListener;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.text.MaskFormatter;
+import java.text.ParseException;
 
 public class TelaMedicos extends JFrame {
     
@@ -71,7 +73,13 @@ public class TelaMedicos extends JFrame {
         lblCrm.setBounds(20, 30, 80, 25);
         panel.add(lblCrm);
         
-        txtCrm = new JTextField();
+        try {
+            MaskFormatter crmMask = new MaskFormatter("CRM######");
+            crmMask.setPlaceholderCharacter('_');
+            txtCrm = new JFormattedTextField(crmMask);
+        } catch (ParseException e) {
+            txtCrm = new JTextField(); // fallback
+        }
         txtCrm.setBounds(100, 30, 150, 25);
         panel.add(txtCrm);
         
@@ -344,7 +352,9 @@ public class TelaMedicos extends JFrame {
             
             // Criar ou atualizar medico
             Medico medico = new Medico();
-            medico.setCrm(txtCrm.getText().trim().toUpperCase());
+            String crmTexto = txtCrm.getText();
+            String crm = crmTexto != null ? crmTexto.trim().toUpperCase() : "";
+            medico.setCrm(crm);
             medico.setNome(txtNome.getText().trim());
             medico.setEspecialidade((String) cbEspecialidade.getSelectedItem());
             medico.setSalaAtendimento(txtSala.getText().trim());

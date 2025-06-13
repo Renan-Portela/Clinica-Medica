@@ -6,9 +6,13 @@ import br.com.clinica.util.ValidadorCPF;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.text.MaskFormatter;
+import java.text.ParseException;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -71,6 +75,13 @@ public class TelaPacientes extends JFrame {
         panel.add(lblCpf);
         
         txtCpf = new JTextField();
+        try {
+            MaskFormatter cpfMask = new MaskFormatter("###.###.###-##");
+            cpfMask.setPlaceholderCharacter('_');
+            txtCpf = new JFormattedTextField(cpfMask);
+        } catch (ParseException e) {
+            txtCpf = new JTextField(); // fallback
+        }
         txtCpf.setBounds(100, 30, 150, 25);
         panel.add(txtCpf);
         
@@ -89,6 +100,13 @@ public class TelaPacientes extends JFrame {
         panel.add(lblData);
         
         txtDataNascimento = new JTextField();
+        try {
+            MaskFormatter dataMask = new MaskFormatter("##/##/####");
+            dataMask.setPlaceholderCharacter('_');
+            txtDataNascimento = new JFormattedTextField(dataMask);
+        } catch (ParseException e) {
+            txtDataNascimento = new JTextField(); // fallback
+        }
         txtDataNascimento.setBounds(720, 30, 100, 25);
         txtDataNascimento.setToolTipText("dd/MM/yyyy");
         panel.add(txtDataNascimento);
@@ -108,6 +126,14 @@ public class TelaPacientes extends JFrame {
         panel.add(lblTelefone);
         
         txtTelefone = new JTextField();
+        try {
+            MaskFormatter telMask = new MaskFormatter("(##) #####-####");
+            telMask.setPlaceholderCharacter('_');
+            txtTelefone = new JFormattedTextField(telMask);
+        } catch (ParseException e) {
+            txtTelefone = new JTextField(); // fallback
+        }
+
         txtTelefone.setBounds(500, 70, 150, 25);
         panel.add(txtTelefone);
         
@@ -254,7 +280,8 @@ public class TelaPacientes extends JFrame {
                 return;
             }
             
-            String cpf = txtCpf.getText().replaceAll("[^0-9]", "");
+            String cpfTexto = txtCpf.getText();
+            String cpf = cpfTexto != null ? cpfTexto.replaceAll("[^0-9]", "") : "";
             if (!ValidadorCPF.validar(cpf)) {
                 JOptionPane.showMessageDialog(this, "CPF invalido!");
                 return;
