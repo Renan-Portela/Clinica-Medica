@@ -22,7 +22,7 @@ public class TesteEmail {
     
     // Método para testar envio de confirmação de consulta
     public static void testarConfirmacaoConsulta() {
-        String emailPaciente = "jv06022005@gmail.com"; // ALTERE AQUI
+        String emailPaciente = "projeto.clinicamedica.2025@gmail.com"; // ALTERE AQUI
         String nomePaciente = "José Vitor";
         String nomeMedico = "Dr. Carlos Santos";
         String dataHora = "15/06/2025 14:30";

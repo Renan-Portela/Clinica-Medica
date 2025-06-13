@@ -12,8 +12,8 @@ public class EmailService {
     private static final String PORT = "587";
 
     // ALTERE AQUI COM SEUS DADOS
-    private static final String USERNAME = "renanportela9@gmail.com"; // SEU EMAIL
-    private static final String PASSWORD = "upkt dzxp nvna dsfh "; // SUA SENHA DE APP
+    private static final String USERNAME = "projeto.clinicamedica.2025@gmail.com"; // SEU EMAIL
+    private static final String PASSWORD = "yrdj eecd hpds mzgq "; // SUA SENHA DE APP
 
     public static boolean enviarEmail(String destinatario, String assunto, String mensagem) {
         try {
@@ -51,7 +51,7 @@ public class EmailService {
 
     // MÉTODO PARA TESTE SIMPLES
     public static boolean testarEmail() {
-        String emailTeste = "renanportela9@gmail.com"; // COLOQUE SEU EMAIL AQUI
+        String emailTeste = "projeto.clinicamedica.2025@gmail.com"; // COLOQUE SEU EMAIL AQUI
         String assunto = "Teste - Sistema Clinica";
         String mensagem = "Este e um teste do sistema de email da clinica medica.\n\nSe voce recebeu este email, o sistema esta funcionando!";
 
