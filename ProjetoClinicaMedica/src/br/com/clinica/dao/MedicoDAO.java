@@ -1,0 +1,107 @@
+package br.com.clinica.dao;
+
+import br.com.clinica.config.DatabaseConnection;
+import br.com.clinica.model.Medico;
+
+import java.sql.*;
+import java.time.LocalTime;
+import java.util.*;
+
+public class MedicoDAO {
+    private Connection connection;
+    
+    public MedicoDAO() {
+        this.connection = DatabaseConnection.getInstance().getConnection();
+    }
+    
+    public void save(Medico medico) throws SQLException {
+        String sql = "INSERT INTO medicos (crm, nome, especialidade, dias_atendimento, " +
+                    "horario_inicio, horario_fim, sala_atendimento) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, medico.getCrm());
+            stmt.setString(2, medico.getNome());
+            stmt.setString(3, medico.getEspecialidade());
+            stmt.setString(4, String.join(",", medico.getDiasAtendimento()));
+            stmt.setTime(5, Time.valueOf(medico.getHorarioInicio()));
+            stmt.setTime(6, Time.valueOf(medico.getHorarioFim()));
+            stmt.setString(7, medico.getSalaAtendimento());
+            
+            stmt.executeUpdate();
+        }
+    }
+    
+    public void update(Medico medico) throws SQLException {
+        String sql = "UPDATE medicos SET nome = ?, especialidade = ?, dias_atendimento = ?, " +
+                    "horario_inicio = ?, horario_fim = ?, sala_atendimento = ? WHERE crm = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, medico.getNome());
+            stmt.setString(2, medico.getEspecialidade());
+            stmt.setString(3, String.join(",", medico.getDiasAtendimento()));
+            stmt.setTime(4, Time.valueOf(medico.getHorarioInicio()));
+            stmt.setTime(5, Time.valueOf(medico.getHorarioFim()));
+            stmt.setString(6, medico.getSalaAtendimento());
+            stmt.setString(7, medico.getCrm());
+            
+            stmt.executeUpdate();
+        }
+    }
+    
+    public void delete(String crm) throws SQLException {
+        String sql = "DELETE FROM medicos WHERE crm = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, crm);
+            stmt.executeUpdate();
+        }
+    }
+    
+    public Medico findById(String crm) throws SQLException {
+        String sql = "SELECT * FROM medicos WHERE crm = ?";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setString(1, crm);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+                return null;
+            }
+        }
+    }
+    
+    public List<Medico> findAll() throws SQLException {
+        String sql = "SELECT * FROM medicos ORDER BY nome";
+        List<Medico> medicos = new ArrayList<>();
+        
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                medicos.add(mapResultSet(rs));
+            }
+        }
+        
+        return medicos;
+    }
+    
+    private Medico mapResultSet(ResultSet rs) throws SQLException {
+        Medico medico = new Medico();
+        medico.setCrm(rs.getString("crm"));
+        medico.setNome(rs.getString("nome"));
+        medico.setEspecialidade(rs.getString("especialidade"));
+        
+        String dias = rs.getString("dias_atendimento");
+        if (dias != null && !dias.isEmpty()) {
+            medico.setDiasAtendimento(Arrays.asList(dias.split(",")));
+        }
+        
+        medico.setHorarioInicio(rs.getTime("horario_inicio").toLocalTime());
+        medico.setHorarioFim(rs.getTime("horario_fim").toLocalTime());
+        medico.setSalaAtendimento(rs.getString("sala_atendimento"));
+        
+        return medico;
+    }
+}
