@@ -103,7 +103,7 @@ public class TelaPrincipal extends JFrame {
         btnAgenda.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new TelaAgenda().setVisible(true);
+            	new TelaAgendaCalendario().setVisible(true);
             }
         });
         contentPane.add(btnAgenda);

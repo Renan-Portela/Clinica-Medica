@@ -84,15 +84,18 @@ public class TelaAgendamento extends JFrame {
         lblData.setFont(new Font("Arial", Font.BOLD, 12));
         mainPanel.add(lblData);
         
-        txtData = new JTextField();
         try {
             MaskFormatter dataMask = new MaskFormatter("##/##/####");
-            dataMask.setPlaceholderCharacter('_');
+            dataMask.setValidCharacters("0123456789");
             txtData = new JFormattedTextField(dataMask);
         } catch (ParseException e) {
-            txtData = new JTextField(); // fallback
+            txtData = new JTextField();
         }
+        
         txtData.setBounds(130, 150, 120, 25);
+        txtData.setForeground(Color.BLACK);
+        txtData.setBackground(Color.WHITE);
+        txtData.setFont(new Font("Arial", Font.PLAIN, 12));
         txtData.setToolTipText("dd/MM/yyyy");
         mainPanel.add(txtData);
         
