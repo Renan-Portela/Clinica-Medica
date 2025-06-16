@@ -46,7 +46,7 @@ public class TelaRelatorios extends JFrame {
         
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
-        add(mainPanel);
+        getContentPane().add(mainPanel);
         
         // Header
         JPanel headerPanel = new JPanel();
@@ -77,6 +77,7 @@ public class TelaRelatorios extends JFrame {
         };
         
         table = new JTable(tableModel);
+        table.setFont(new Font("Dialog", Font.PLAIN, 20));
         table.setRowHeight(25);
         JScrollPane scrollTable = new JScrollPane(table);
         scrollTable.setPreferredSize(new Dimension(0, 400));
@@ -92,7 +93,7 @@ public class TelaRelatorios extends JFrame {
         txtResumo = new JTextArea();
         txtResumo.setEditable(false);
         txtResumo.setBackground(new Color(248, 248, 248));
-        txtResumo.setFont(new Font("Arial", Font.PLAIN, 12));
+        txtResumo.setFont(new Font("Arial", Font.PLAIN, 30));
         
         JScrollPane scrollResumo = new JScrollPane(txtResumo);
         resumoPanel.add(scrollResumo, BorderLayout.CENTER);

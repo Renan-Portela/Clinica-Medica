@@ -48,7 +48,7 @@ public class TelaPacientes extends JFrame {
         
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
-        add(mainPanel);
+        getContentPane().add(mainPanel);
         
         // Painel formulario
         JPanel formPanel = createFormPanel();
@@ -165,6 +165,8 @@ public class TelaPacientes extends JFrame {
         };
         
         table = new JTable(tableModel);
+        table.setRowSelectionAllowed(false);
+        table.setFont(new Font("Dialog", Font.PLAIN, 15));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
