@@ -42,7 +42,7 @@ public class TelaPacientes extends JFrame {
     
     private void initComponents() {
         setTitle("Gerenciamento de Pacientes");
-        setSize(900, 700);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
@@ -322,8 +322,18 @@ public class TelaPacientes extends JFrame {
                 pacienteDAO.save(paciente);
                 JOptionPane.showMessageDialog(this, "Paciente cadastrado com sucesso!");
             } else {
-                pacienteDAO.update(paciente);
-                JOptionPane.showMessageDialog(this, "Paciente atualizado com sucesso!");
+            	// Confirmação antes de atualizar dados do paciente
+                int opcao = JOptionPane.showConfirmDialog(
+                    this,
+                    "Deseja realmente atualizar os dados do paciente " + pacienteSelecionado.getNome() + "?",
+                    "Confirmar Alteração",
+                    JOptionPane.YES_NO_OPTION
+                );
+                
+                if (opcao == JOptionPane.YES_OPTION) {
+                    pacienteDAO.update(paciente);
+                    JOptionPane.showMessageDialog(this, "Paciente atualizado com sucesso!");
+                }
             }
             
             carregarPacientes();

@@ -8,6 +8,8 @@ import java.awt.EventQueue;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -34,6 +36,8 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -66,6 +70,7 @@ public class TelaAgendaCalendario {
     private JLabel lblSemanaAtual;
     private JComboBox<String> cbTipoFiltro;
     private JComboBox<Object> cbFiltroItem;
+    private Map<String, Consulta> mapaConsultas; // NOVO: Mapear posição -> consulta
 
     /**
      * Launch the application.
@@ -90,6 +95,7 @@ public class TelaAgendaCalendario {
         this.consultaDAO = new ConsultaDAO();
         this.medicoDAO = new MedicoDAO();  
         this.pacienteDAO = new PacienteDAO();
+        this.mapaConsultas = new HashMap<>(); // NOVO: Inicializar mapa
         calendarioAtual = Calendar.getInstance();
         initialize();
         criarTabelaAgendamento();
@@ -115,7 +121,7 @@ public class TelaAgendaCalendario {
     private void initialize() {
         frmAgendamento = new JFrame();
         frmAgendamento.setTitle("Agenda da Clínica");
-        frmAgendamento.setBounds(100, 100, 1400, 800);
+        frmAgendamento.setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         frmAgendamento.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frmAgendamento.getContentPane().setLayout(null);
         
@@ -126,10 +132,9 @@ public class TelaAgendaCalendario {
         FlowLayout fl_panelBotoes = (FlowLayout) panelBotoes.getLayout();
         fl_panelBotoes.setAlignment(FlowLayout.RIGHT);
         
-        JButton btnNovaConsulta = new JButton("+ Nova Consulta");
+        JButton btnNovaConsulta = new JButton("Agendamentos");
         btnNovaConsulta.addActionListener(e -> {
-            TelaAgendamento telaAgendar = new TelaAgendamento();
-            telaAgendar.setVisible(true);
+            new TelaAgenda().setVisible(true);
         });
         panelBotoes.add(btnNovaConsulta);
 
@@ -292,7 +297,7 @@ public class TelaAgendaCalendario {
         panelPrincipal.add(lblSemanaAtual);
         
         table = new JTable();
-        table.setEnabled(false);
+        table.setEnabled(true); // MODIFICADO: Habilitar cliques
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBounds(20, 50, 1100, 650);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(222, 226, 230)));
@@ -489,7 +494,7 @@ public class TelaAgendaCalendario {
         modeloTabela = new DefaultTableModel(dados, colunas) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column > 0;
+                return false; // MODIFICADO: Não editável, mas clicável
             }
         };
         
@@ -504,6 +509,27 @@ public class TelaAgendaCalendario {
         table.setGridColor(new Color(222, 226, 230));
         table.setSelectionBackground(new Color(232, 244, 253));
         table.setFont(new Font("Verdana", Font.PLAIN, 12));
+        
+        // NOVO: ADICIONAR MOUSELISTENER - CLIQUE NA CONSULTA
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int linha = table.rowAtPoint(e.getPoint());
+                int coluna = table.columnAtPoint(e.getPoint());
+                
+                if (linha >= 0 && coluna >= 1) { // Não clica na coluna de horário
+                    String chave = linha + "," + coluna;
+                    Consulta consulta = mapaConsultas.get(chave);
+                    
+                    if (consulta != null) {
+                        // Abre TelaAgenda com a consulta selecionada
+                        TelaAgenda telaAgenda = new TelaAgenda();
+                        telaAgenda.setVisible(true);
+                        telaAgenda.toFront();
+                    }
+                }
+            }
+        });
         
         table.getColumnModel().getColumn(0).setPreferredWidth(80);
         table.getColumnModel().getColumn(0).setMaxWidth(80);
@@ -562,6 +588,7 @@ public class TelaAgendaCalendario {
                 setBackground(new Color(232, 244, 253));
                 setForeground(COR_PRINCIPAL);
                 setFont(new Font("Verdana", Font.BOLD, 11));
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // NOVO: Cursor de clique
             } else {
                 setBackground(Color.WHITE);
                 setForeground(COR_TEXTO);
@@ -583,11 +610,15 @@ public class TelaAgendaCalendario {
     }
 
     private void atualizarTabelaComConsultas(List<Consulta> consultas) {
+        // Limpar tabela
         for(int linha = 0; linha < modeloTabela.getRowCount(); linha++) {
             for(int col = 1; col < modeloTabela.getColumnCount(); col++) {
                 modeloTabela.setValueAt("", linha, col);
             }
         }
+        
+        // Limpar mapa de consultas
+        mapaConsultas.clear(); // NOVO: Limpar mapa
         
         for(Consulta consulta : consultas) {
             adicionarConsultaNaTabela(consulta);
@@ -607,9 +638,13 @@ public class TelaAgendaCalendario {
             if(linha >= 0 && linha < modeloTabela.getRowCount() && 
                coluna >= 1 && coluna < modeloTabela.getColumnCount()) {
                 
-                String texto = consulta.getPaciente().getNome() + "\n" + 
+                String texto = consulta.getPaciente().getNome() + " | " + 
                               consulta.getMedico().getNome();
                 modeloTabela.setValueAt(texto, linha, coluna);
+                
+                // NOVO: Armazenar consulta no mapa para clique
+                String chave = linha + "," + coluna;
+                mapaConsultas.put(chave, consulta);
             }
         }
     }

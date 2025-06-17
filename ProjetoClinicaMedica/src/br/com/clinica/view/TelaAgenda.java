@@ -14,6 +14,9 @@ public class TelaAgenda extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
     private ConsultaDAO consultaDAO;
+    private JTextArea txtObservacoes; // NOVO: Campo para observações
+    private JButton btnSalvarObs; // NOVO: Botão salvar observações
+    private Consulta consultaSelecionada; // NOVO: Consulta atualmente selecionada
     
     public TelaAgenda() {
         this.consultaDAO = new ConsultaDAO();
@@ -23,7 +26,7 @@ public class TelaAgenda extends JFrame {
     
     private void initComponents() {
         setTitle("Agenda de Consultas");
-        setSize(1000, 600);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
@@ -43,6 +46,11 @@ public class TelaAgenda extends JFrame {
         
         mainPanel.add(headerPanel, BorderLayout.NORTH);
         
+        // Painel principal dividido
+        JPanel painelCentral = new JPanel();
+        painelCentral.setLayout(new BorderLayout());
+        mainPanel.add(painelCentral, BorderLayout.CENTER);
+        
         // Tabela
         String[] colunas = {"ID", "Data/Hora", "Medico", "Paciente", "Status", "Observacoes"};
         tableModel = new DefaultTableModel(colunas, 0) {
@@ -56,10 +64,51 @@ public class TelaAgenda extends JFrame {
         table.setRowHeight(25);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         
-        JScrollPane scrollPane = new JScrollPane(table);
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        // NOVO: Listener para carregar observações quando selecionar consulta
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                carregarConsultaSelecionada();
+            }
+        });
         
-        // Botoes
+        JScrollPane scrollPane = new JScrollPane(table);
+        painelCentral.add(scrollPane, BorderLayout.CENTER);
+        
+        // NOVO: Painel de observações (lado direito)
+        JPanel painelObservacoes = new JPanel();
+        painelObservacoes.setLayout(new BorderLayout());
+        painelObservacoes.setPreferredSize(new Dimension(400, 0));
+        painelObservacoes.setBorder(BorderFactory.createTitledBorder("Observações da Consulta"));
+        
+        JLabel lblInfo = new JLabel("Selecione uma consulta para editar observações");
+        lblInfo.setFont(new Font("Arial", Font.ITALIC, 12));
+        lblInfo.setHorizontalAlignment(SwingConstants.CENTER);
+        painelObservacoes.add(lblInfo, BorderLayout.NORTH);
+        
+        txtObservacoes = new JTextArea();
+        txtObservacoes.setLineWrap(true);
+        txtObservacoes.setWrapStyleWord(true);
+        txtObservacoes.setFont(new Font("Arial", Font.PLAIN, 12));
+        txtObservacoes.setEnabled(false); // Desabilitado até selecionar consulta
+        
+        JScrollPane scrollObs = new JScrollPane(txtObservacoes);
+        scrollObs.setPreferredSize(new Dimension(0, 200));
+        painelObservacoes.add(scrollObs, BorderLayout.CENTER);
+        
+        // Botão salvar observações
+        JPanel painelBotaoObs = new JPanel();
+        btnSalvarObs = new JButton("Salvar Observações");
+        btnSalvarObs.setBackground(new Color(0, 102, 153));
+        btnSalvarObs.setForeground(Color.WHITE);
+        btnSalvarObs.setEnabled(false); // Desabilitado até selecionar consulta
+        btnSalvarObs.addActionListener(e -> salvarObservacoes());
+        painelBotaoObs.add(btnSalvarObs);
+        
+        painelObservacoes.add(painelBotaoObs, BorderLayout.SOUTH);
+        
+        painelCentral.add(painelObservacoes, BorderLayout.EAST);
+        
+        // Botoes principais
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new FlowLayout());
         
@@ -84,6 +133,66 @@ public class TelaAgenda extends JFrame {
         buttonPanel.add(btnFechar);
         
         mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+    }
+    
+    // NOVO: Método para carregar consulta selecionada
+    private void carregarConsultaSelecionada() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow >= 0) {
+            try {
+                Long id = (Long) tableModel.getValueAt(selectedRow, 0);
+                
+                // Buscar consulta completa
+                List<Consulta> todasConsultas = consultaDAO.findAll();
+                for (Consulta consulta : todasConsultas) {
+                    if (consulta.getId().equals(id)) {
+                        consultaSelecionada = consulta;
+                        
+                        // Carregar observações no campo de texto
+                        String obs = consulta.getObservacoes();
+                        txtObservacoes.setText(obs != null ? obs : "");
+                        
+                        // Habilitar edição
+                        txtObservacoes.setEnabled(true);
+                        btnSalvarObs.setEnabled(true);
+                        break;
+                    }
+                }
+                
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Erro ao carregar consulta: " + e.getMessage());
+            }
+        } else {
+            // Nenhuma consulta selecionada
+            consultaSelecionada = null;
+            txtObservacoes.setText("");
+            txtObservacoes.setEnabled(false);
+            btnSalvarObs.setEnabled(false);
+        }
+    }
+    
+    // NOVO: Método para salvar observações
+    private void salvarObservacoes() {
+        if (consultaSelecionada == null) {
+            JOptionPane.showMessageDialog(this, "Nenhuma consulta selecionada!");
+            return;
+        }
+        
+        try {
+            // Atualizar observações da consulta
+            consultaSelecionada.setObservacoes(txtObservacoes.getText().trim());
+            
+            // Salvar no banco
+            consultaDAO.update(consultaSelecionada);
+            
+            JOptionPane.showMessageDialog(this, "Observações salvas com sucesso!");
+            
+            // Atualizar tabela
+            carregarConsultas();
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Erro ao salvar observações: " + e.getMessage());
+        }
     }
     
     private void carregarConsultas() {

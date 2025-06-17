@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList; // ADICIONADO
 import javax.swing.text.MaskFormatter;
 import java.text.ParseException;
 
@@ -42,7 +43,7 @@ public class TelaAgendamento extends JFrame {
     
     private void initComponents() {
         setTitle("Agendamento de Consulta");
-        setSize(600, 500);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
@@ -66,6 +67,7 @@ public class TelaAgendamento extends JFrame {
         
         cbMedicos = new JComboBox<>();
         cbMedicos.setBounds(130, 70, 400, 25);
+        cbMedicos.addActionListener(e -> carregarHorariosDisponiveis()); // ADICIONADO
         mainPanel.add(cbMedicos);
         
         // Paciente
@@ -97,6 +99,14 @@ public class TelaAgendamento extends JFrame {
         txtData.setBackground(Color.WHITE);
         txtData.setFont(new Font("Arial", Font.PLAIN, 12));
         txtData.setToolTipText("dd/MM/yyyy");
+        // ADICIONADO: Listener para atualizar horários quando data for digitada
+        txtData.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                if (txtData.getText().length() == 10) { // dd/MM/yyyy completo
+                    carregarHorariosDisponiveis();
+                }
+            }
+        });
         mainPanel.add(txtData);
         
         // Horario
@@ -169,6 +179,7 @@ public class TelaAgendamento extends JFrame {
         }
     }
     
+    // MÉTODO ORIGINAL MANTIDO
     private void carregarHorarios() {
         String[] horarios = {
             "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -176,8 +187,60 @@ public class TelaAgendamento extends JFrame {
             "16:00", "16:30", "17:00"
         };
         
+        cbHorarios.removeAllItems();
         for (String horario : horarios) {
             cbHorarios.addItem(horario);
+        }
+    }
+    
+    // NOVO MÉTODO: Horários ocupados SOMEM do combobox
+    private void carregarHorariosDisponiveis() {
+        cbHorarios.removeAllItems();
+        
+        // Horários base
+        String[] todosHorarios = {
+            "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
+            "11:00", "11:30", "14:00", "14:30", "15:00", "15:30",
+            "16:00", "16:30", "17:00"
+        };
+        
+        // Se não tem médico ou data, mostrar todos
+        if (cbMedicos.getSelectedItem() == null || txtData.getText().trim().isEmpty()) {
+            for (String horario : todosHorarios) {
+                cbHorarios.addItem(horario);
+            }
+            return;
+        }
+        
+        try {
+            // Pegar médico e data selecionados
+            Medico medico = (Medico) cbMedicos.getSelectedItem();
+            LocalDate data = LocalDate.parse(txtData.getText().trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            
+            // Buscar consultas agendadas
+            List<Consulta> consultas = consultaDAO.findAll();
+            List<String> horariosOcupados = new ArrayList<>();
+            
+            for (Consulta consulta : consultas) {
+                if (consulta.getMedico().getCrm().equals(medico.getCrm()) && 
+                    consulta.getDataHorario().toLocalDate().equals(data)) {
+                    String horarioOcupado = consulta.getDataHorario().toLocalTime().toString();
+                    horariosOcupados.add(horarioOcupado);
+                }
+            }
+            
+            // Adicionar apenas horários livres - HORÁRIOS OCUPADOS SOMEM!
+            for (String horario : todosHorarios) {
+                if (!horariosOcupados.contains(horario)) {
+                    cbHorarios.addItem(horario);
+                }
+            }
+            
+        } catch (Exception e) {
+            // Se der erro, mostrar todos os horários
+            for (String horario : todosHorarios) {
+                cbHorarios.addItem(horario);
+            }
         }
     }
     
@@ -202,10 +265,10 @@ public class TelaAgendamento extends JFrame {
             // Parsear data e horario
             LocalDate data;
             try {
-            	String dataTexto = txtData.getText();
-            	String dataLimpa = dataTexto != null ? dataTexto.trim() : "";
-            	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            	data = LocalDate.parse(dataLimpa, formatter);
+                String dataTexto = txtData.getText();
+                String dataLimpa = dataTexto != null ? dataTexto.trim() : "";
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                data = LocalDate.parse(dataLimpa, formatter);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, "Data invalida! Use formato dd/MM/yyyy");
                 return;

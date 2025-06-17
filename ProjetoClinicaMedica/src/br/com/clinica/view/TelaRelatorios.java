@@ -40,7 +40,7 @@ public class TelaRelatorios extends JFrame {
     
     private void initComponents() {
         setTitle("Relatorios Gerenciais");
-        setSize(1000, 700);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         

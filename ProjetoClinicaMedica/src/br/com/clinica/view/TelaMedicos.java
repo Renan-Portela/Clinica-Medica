@@ -41,7 +41,7 @@ public class TelaMedicos extends JFrame {
     
     private void initComponents() {
         setTitle("Gerenciamento de Medicos");
-        setSize(900, 700);
+        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
@@ -366,8 +366,18 @@ public class TelaMedicos extends JFrame {
                 medicoDAO.save(medico);
                 JOptionPane.showMessageDialog(this, "Medico cadastrado com sucesso!");
             } else {
-                medicoDAO.update(medico);
-                JOptionPane.showMessageDialog(this, "Medico atualizado com sucesso!");
+            	// Confirmação antes de atualizar dados do médico
+                int opcao = JOptionPane.showConfirmDialog(
+                    this,
+                    "Deseja realmente atualizar os dados do médico " + medicoSelecionado.getNome() + "?",
+                    "Confirmar Alteração",
+                    JOptionPane.YES_NO_OPTION
+                );
+                
+                if (opcao == JOptionPane.YES_OPTION) {
+                    medicoDAO.update(medico);
+                    JOptionPane.showMessageDialog(this, "Médico atualizado com sucesso!");
+                }
             }
             
             carregarMedicos();
