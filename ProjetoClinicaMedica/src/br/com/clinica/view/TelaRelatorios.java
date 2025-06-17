@@ -6,6 +6,7 @@ import br.com.clinica.model.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
 
@@ -13,6 +14,9 @@ public class TelaRelatorios extends JFrame {
     
     private static final long serialVersionUID = 1L;
     private JComboBox<String> cbTipoRelatorio;
+    private JComboBox<Medico> cbMedico;
+    private JComboBox<String> cbMes;
+    private JComboBox<Integer> cbAno;
     private JTable table;
     private DefaultTableModel tableModel;
     private JTextArea txtResumo;
@@ -30,17 +34,23 @@ public class TelaRelatorios extends JFrame {
         "Pacientes sem Consulta (1 ano)"
     };
     
+    private final String[] MESES = {
+        "Todos", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    };
+    
     public TelaRelatorios() {
         this.consultaDAO = new ConsultaDAO();
         this.medicoDAO = new MedicoDAO();
         this.pacienteDAO = new PacienteDAO();
         
         initComponents();
+        carregarFiltros();
     }
     
     private void initComponents() {
         setTitle("Relatorios Gerenciais");
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         
@@ -53,6 +63,7 @@ public class TelaRelatorios extends JFrame {
         headerPanel.setLayout(new FlowLayout());
         headerPanel.setBackground(new Color(240, 248, 255));
         
+        // Tipo de Relatório
         JLabel lblTipo = new JLabel("Tipo de Relatorio:");
         lblTipo.setFont(new Font("Arial", Font.BOLD, 12));
         headerPanel.add(lblTipo);
@@ -60,6 +71,35 @@ public class TelaRelatorios extends JFrame {
         cbTipoRelatorio = new JComboBox<>(TIPOS_RELATORIO);
         headerPanel.add(cbTipoRelatorio);
         
+        headerPanel.add(new JLabel(" | "));
+        
+        // Filtro Médico
+        JLabel lblMedico = new JLabel("Médico:");
+        lblMedico.setFont(new Font("Arial", Font.BOLD, 12));
+        headerPanel.add(lblMedico);
+        
+        cbMedico = new JComboBox<>();
+        headerPanel.add(cbMedico);
+        
+        // Filtro Mês
+        JLabel lblMes = new JLabel("Mês:");
+        lblMes.setFont(new Font("Arial", Font.BOLD, 12));
+        headerPanel.add(lblMes);
+        
+        cbMes = new JComboBox<>(MESES);
+        headerPanel.add(cbMes);
+        
+        // Filtro Ano
+        JLabel lblAno = new JLabel("Ano:");
+        lblAno.setFont(new Font("Arial", Font.BOLD, 12));
+        headerPanel.add(lblAno);
+        
+        cbAno = new JComboBox<>();
+        headerPanel.add(cbAno);
+        
+        headerPanel.add(new JLabel(" | "));
+        
+        // Botão Gerar
         JButton btnGerar = new JButton("Gerar Relatorio");
         btnGerar.setBackground(new Color(76, 175, 80));
         btnGerar.setForeground(Color.WHITE);
@@ -72,7 +112,7 @@ public class TelaRelatorios extends JFrame {
         tableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Nao editavel
+                return false;
             }
         };
         
@@ -99,6 +139,94 @@ public class TelaRelatorios extends JFrame {
         resumoPanel.add(scrollResumo, BorderLayout.CENTER);
         
         mainPanel.add(resumoPanel, BorderLayout.SOUTH);
+    }
+    
+    private void carregarFiltros() {
+        try {
+            // Carregar médicos
+            cbMedico.removeAllItems();
+            cbMedico.addItem(null);
+            
+            List<Medico> medicos = medicoDAO.findAll();
+            for (Medico medico : medicos) {
+                cbMedico.addItem(medico);
+            }
+            
+            cbMedico.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, 
+                        int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value == null) {
+                        setText("Todos");
+                    }
+                    return this;
+                }
+            });
+            
+            // Carregar anos
+            cbAno.removeAllItems();
+            cbAno.addItem(null);
+            
+            int anoAtual = LocalDateTime.now().getYear();
+            for (int ano = anoAtual - 5; ano <= anoAtual + 2; ano++) {
+                cbAno.addItem(ano);
+            }
+            
+            cbAno.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, 
+                        int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value == null) {
+                        setText("Todos");
+                    }
+                    return this;
+                }
+            });
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar filtros: " + e.getMessage());
+        }
+    }
+    
+    private List<Consulta> filtrarConsultas(List<Consulta> consultas) {
+        List<Consulta> consultasFiltradas = new ArrayList<>();
+        
+        Medico medicoSelecionado = (Medico) cbMedico.getSelectedItem();
+        String mesSelecionado = (String) cbMes.getSelectedItem();
+        Integer anoSelecionado = (Integer) cbAno.getSelectedItem();
+        
+        for (Consulta consulta : consultas) {
+            boolean incluir = true;
+            
+            if (medicoSelecionado != null) {
+                if (!consulta.getMedico().getCrm().equals(medicoSelecionado.getCrm())) {
+                    incluir = false;
+                }
+            }
+            
+            if (!"Todos".equals(mesSelecionado)) {
+                int mesConsulta = consulta.getDataHorario().getMonthValue();
+                int mesIndice = Arrays.asList(MESES).indexOf(mesSelecionado);
+                if (mesIndice != mesConsulta) {
+                    incluir = false;
+                }
+            }
+            
+            if (anoSelecionado != null) {
+                int anoConsulta = consulta.getDataHorario().getYear();
+                if (anoConsulta != anoSelecionado) {
+                    incluir = false;
+                }
+            }
+            
+            if (incluir) {
+                consultasFiltradas.add(consulta);
+            }
+        }
+        
+        return consultasFiltradas;
     }
     
     private void gerarRelatorio() {
@@ -132,91 +260,93 @@ public class TelaRelatorios extends JFrame {
         }
     }
     
+    // MODIFICADO: Agora com coluna Data
     private void gerarConsultasPorMedico() throws Exception {
-        List<Consulta> consultas = consultaDAO.findAll();
-        Map<String, Integer> contadores = new HashMap<>();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
+        // Configurar tabela COM DATA
+        tableModel.setColumnIdentifiers(new String[]{"Data", "Medico", "Paciente", "Status"});
+        tableModel.setRowCount(0);
+        
+        for (Consulta consulta : consultas) {
+            tableModel.addRow(new Object[]{
+                consulta.getDataHorarioFormatado(),
+                consulta.getMedico().getNome(),
+                consulta.getPaciente().getNome(),
+                consulta.getStatus().getDescricao()
+            });
+        }
+        
+        // Resumo
+        Map<String, Integer> contadores = new HashMap<>();
         for (Consulta consulta : consultas) {
             String medico = consulta.getMedico().getNome();
             contadores.put(medico, contadores.getOrDefault(medico, 0) + 1);
         }
         
-        // Configurar tabela
-        tableModel.setColumnIdentifiers(new String[]{"Medico", "Total Consultas", "Percentual"});
-        tableModel.setRowCount(0);
-        
-        int totalGeral = consultas.size();
-        
-        for (Map.Entry<String, Integer> entry : contadores.entrySet()) {
-            String medico = entry.getKey();
-            Integer total = entry.getValue();
-            Double percentual = totalGeral > 0 ? (total * 100.0 / totalGeral) : 0.0;
-            
-            tableModel.addRow(new Object[]{
-                medico,
-                total,
-                String.format("%.1f%%", percentual)
-            });
-        }
-        
-        // Resumo
         String resumo = String.format(
             "RELATORIO DE CONSULTAS POR MEDICO\n" +
             "Total de consultas: %d\n" +
             "Numero de medicos: %d\n" +
             "Media por medico: %.1f",
-            totalGeral, contadores.size(),
-            totalGeral > 0 ? (double) totalGeral / contadores.size() : 0.0
+            consultas.size(), contadores.size(),
+            consultas.size() > 0 ? (double) consultas.size() / contadores.size() : 0.0
         );
         
         txtResumo.setText(resumo);
     }
     
+    // MODIFICADO: Agora com coluna Data
     private void gerarPacientesPorEspecialidade() throws Exception {
-        List<Consulta> consultas = consultaDAO.findAll();
-        Map<String, Set<String>> pacientesPorEsp = new HashMap<>();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
-        for (Consulta consulta : consultas) {
-            String especialidade = consulta.getMedico().getEspecialidade();
-            String paciente = consulta.getPaciente().getNome();
-            
-            pacientesPorEsp.computeIfAbsent(especialidade, k -> new HashSet<>()).add(paciente);
-        }
-        
-        // Configurar tabela
-        tableModel.setColumnIdentifiers(new String[]{"Especialidade", "Pacientes Unicos"});
+        // Configurar tabela COM DATA
+        tableModel.setColumnIdentifiers(new String[]{"Data", "Especialidade", "Paciente", "Medico"});
         tableModel.setRowCount(0);
         
-        int totalPacientes = 0;
-        for (Map.Entry<String, Set<String>> entry : pacientesPorEsp.entrySet()) {
-            totalPacientes += entry.getValue().size();
+        for (Consulta consulta : consultas) {
             tableModel.addRow(new Object[]{
-                entry.getKey(),
-                entry.getValue().size()
+                consulta.getDataHorarioFormatado(),
+                consulta.getMedico().getEspecialidade(),
+                consulta.getPaciente().getNome(),
+                consulta.getMedico().getNome()
             });
         }
         
+        // Resumo
+        Map<String, Set<String>> pacientesPorEsp = new HashMap<>();
+        for (Consulta consulta : consultas) {
+            String especialidade = consulta.getMedico().getEspecialidade();
+            String paciente = consulta.getPaciente().getNome();
+            pacientesPorEsp.computeIfAbsent(especialidade, k -> new HashSet<>()).add(paciente);
+        }
+        
+        int totalPacientes = pacientesPorEsp.values().stream().mapToInt(Set::size).sum();
+        
         String resumo = String.format(
             "PACIENTES POR ESPECIALIDADE\n" +
-            "Total de pacientes unicos: %d\n" +
-            "Numero de especialidades: %d",
-            totalPacientes, pacientesPorEsp.size()
+            "Total de consultas: %d\n" +
+            "Pacientes unicos: %d\n" +
+            "Especialidades: %d",
+            consultas.size(), totalPacientes, pacientesPorEsp.size()
         );
         
         txtResumo.setText(resumo);
     }
     
     private void gerarConsultasCanceladas() throws Exception {
-        List<Consulta> consultas = consultaDAO.findAll();
-        List<Consulta> canceladas = new ArrayList<>();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
+        List<Consulta> canceladas = new ArrayList<>();
         for (Consulta consulta : consultas) {
             if (consulta.getStatus() == Consulta.StatusConsulta.CANCELADA) {
                 canceladas.add(consulta);
             }
         }
         
-        // Configurar tabela
         tableModel.setColumnIdentifiers(new String[]{"Data", "Medico", "Paciente", "Observacoes"});
         tableModel.setRowCount(0);
         
@@ -248,16 +378,16 @@ public class TelaRelatorios extends JFrame {
             return;
         }
         
-        List<Consulta> consultas = consultaDAO.findAll();
-        List<Consulta> historico = new ArrayList<>();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
+        List<Consulta> historico = new ArrayList<>();
         for (Consulta consulta : consultas) {
             if (consulta.getPaciente().getNome().toLowerCase().contains(nomePaciente.toLowerCase())) {
                 historico.add(consulta);
             }
         }
         
-        // Configurar tabela
         tableModel.setColumnIdentifiers(new String[]{"Data", "Medico", "Status", "Observacoes"});
         tableModel.setRowCount(0);
         
@@ -279,11 +409,29 @@ public class TelaRelatorios extends JFrame {
         txtResumo.setText(resumo);
     }
     
+    // MODIFICADO: Agora com coluna Data
     private void gerarDistribuicaoConsultas() throws Exception {
-        List<Consulta> consultas = consultaDAO.findAll();
-        Map<String, Integer> distribuicao = new LinkedHashMap<>();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
-        // Inicializar dias
+        // Configurar tabela COM DATA
+        tableModel.setColumnIdentifiers(new String[]{"Data", "Dia da Semana", "Medico", "Paciente"});
+        tableModel.setRowCount(0);
+        
+        for (Consulta consulta : consultas) {
+            String dia = consulta.getDataHorario().getDayOfWeek().toString();
+            String diaPortugues = converterDiaSemana(dia);
+            
+            tableModel.addRow(new Object[]{
+                consulta.getDataHorarioFormatado(),
+                diaPortugues,
+                consulta.getMedico().getNome(),
+                consulta.getPaciente().getNome()
+            });
+        }
+        
+        // Resumo - distribuição por dia
+        Map<String, Integer> distribuicao = new LinkedHashMap<>();
         distribuicao.put("Segunda", 0);
         distribuicao.put("Terca", 0);
         distribuicao.put("Quarta", 0);
@@ -298,26 +446,11 @@ public class TelaRelatorios extends JFrame {
             distribuicao.put(diaPortugues, distribuicao.get(diaPortugues) + 1);
         }
         
-        // Configurar tabela
-        tableModel.setColumnIdentifiers(new String[]{"Dia da Semana", "Quantidade", "Percentual"});
-        tableModel.setRowCount(0);
-        
-        int total = consultas.size();
-        
-        for (Map.Entry<String, Integer> entry : distribuicao.entrySet()) {
-            Double percentual = total > 0 ? (entry.getValue() * 100.0 / total) : 0.0;
-            tableModel.addRow(new Object[]{
-                entry.getKey(),
-                entry.getValue(),
-                String.format("%.1f%%", percentual)
-            });
-        }
-        
         String resumo = String.format(
             "DISTRIBUICAO POR DIA DA SEMANA\n" +
             "Total de consultas: %d\n" +
             "Media por dia: %.1f",
-            total, total / 7.0
+            consultas.size(), consultas.size() / 7.0
         );
         
         txtResumo.setText(resumo);
@@ -325,15 +458,14 @@ public class TelaRelatorios extends JFrame {
     
     private void gerarPacientesSemConsulta() throws Exception {
         List<Paciente> todosPacientes = pacienteDAO.findAll();
-        List<Consulta> consultas = consultaDAO.findAll();
+        List<Consulta> todasConsultas = consultaDAO.findAll();
+        List<Consulta> consultas = filtrarConsultas(todasConsultas);
         
-        // Pacientes com consulta
         Set<String> pacientesComConsulta = new HashSet<>();
         for (Consulta consulta : consultas) {
             pacientesComConsulta.add(consulta.getPaciente().getCpf());
         }
         
-        // Pacientes sem consulta
         List<Paciente> pacientesSemConsulta = new ArrayList<>();
         for (Paciente paciente : todosPacientes) {
             if (!pacientesComConsulta.contains(paciente.getCpf())) {
@@ -341,7 +473,6 @@ public class TelaRelatorios extends JFrame {
             }
         }
         
-        // Configurar tabela
         tableModel.setColumnIdentifiers(new String[]{"Nome", "CPF", "Idade", "Telefone"});
         tableModel.setRowCount(0);
         

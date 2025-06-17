@@ -18,6 +18,9 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerDateModel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 import java.awt.FlowLayout;
 
 import javax.swing.BorderFactory;
@@ -56,6 +59,12 @@ public class TelaAgendaCalendario {
     private static final Color COR_FUNDO = new Color(248, 249, 250);
     private static final Color COR_BRANCO = Color.WHITE;
     private static final Color COR_TEXTO = new Color(52, 58, 64);
+    
+    // NOVO: Cores por status
+    private static final Color COR_AGENDADA = new Color(52, 144, 220);  // Azul
+    private static final Color COR_REALIZADA = new Color(76, 175, 80);  // Verde
+    private static final Color COR_CANCELADA = new Color(244, 67, 54);  // Vermelho
+    
     private ConsultaDAO consultaDAO;
     private MedicoDAO medicoDAO;
     private PacienteDAO pacienteDAO;
@@ -70,11 +79,8 @@ public class TelaAgendaCalendario {
     private JLabel lblSemanaAtual;
     private JComboBox<String> cbTipoFiltro;
     private JComboBox<Object> cbFiltroItem;
-    private Map<String, Consulta> mapaConsultas; // NOVO: Mapear posição -> consulta
+    private Map<String, Consulta> mapaConsultas;
 
-    /**
-     * Launch the application.
-     */
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -88,14 +94,11 @@ public class TelaAgendaCalendario {
         });
     }
 
-    /**
-     * Create the application.
-     */
     public TelaAgendaCalendario() {
         this.consultaDAO = new ConsultaDAO();
         this.medicoDAO = new MedicoDAO();  
         this.pacienteDAO = new PacienteDAO();
-        this.mapaConsultas = new HashMap<>(); // NOVO: Inicializar mapa
+        this.mapaConsultas = new HashMap<>();
         calendarioAtual = Calendar.getInstance();
         initialize();
         criarTabelaAgendamento();
@@ -111,17 +114,15 @@ public class TelaAgendaCalendario {
         frmAgendamento.toFront();
         frmAgendamento.requestFocus();
     }
+    
     public void setVisible(boolean visible) {
         frmAgendamento.setVisible(visible);
     }
 
-    /**
-     * Initialize the contents of the frame.
-     */
     private void initialize() {
         frmAgendamento = new JFrame();
         frmAgendamento.setTitle("Agenda da Clínica");
-        frmAgendamento.setExtendedState(JFrame.MAXIMIZED_BOTH); // Tela cheia
+        frmAgendamento.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frmAgendamento.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frmAgendamento.getContentPane().setLayout(null);
         
@@ -224,7 +225,6 @@ public class TelaAgendaCalendario {
         cbFiltroItem.setBounds(115, 505, 105, 25);
         panelCalendario.add(cbFiltroItem);
         
-        // Configurar listeners dos filtros
         configurarFiltros();
         
         JPanel panelMiniCalendario = new JPanel();
@@ -296,8 +296,18 @@ public class TelaAgendaCalendario {
         lblSemanaAtual.setForeground(COR_TEXTO);
         panelPrincipal.add(lblSemanaAtual);
         
+        // NOVO: Legenda de cores
+        JPanel legendaPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        legendaPanel.setBounds(600, 10, 500, 30);
+        legendaPanel.setBackground(COR_FUNDO);
+        
+        JLabel lblLegenda = new JLabel("🔵 Agendada  🟢 Realizada  🔴 Cancelada");
+        lblLegenda.setFont(new Font("Verdana", Font.PLAIN, 12));
+        legendaPanel.add(lblLegenda);
+        panelPrincipal.add(legendaPanel);
+        
         table = new JTable();
-        table.setEnabled(true); // MODIFICADO: Habilitar cliques
+        table.setEnabled(true);
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBounds(20, 50, 1100, 650);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(222, 226, 230)));
@@ -494,7 +504,7 @@ public class TelaAgendaCalendario {
         modeloTabela = new DefaultTableModel(dados, colunas) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // MODIFICADO: Não editável, mas clicável
+                return false;
             }
         };
         
@@ -504,28 +514,34 @@ public class TelaAgendaCalendario {
         carregarConsultasReais();
     }
     
+    // MODIFICADO: Agora com clique direito e clique esquerdo
     private void configurarAparenciaTabela() {
         table.setRowHeight(35);
         table.setGridColor(new Color(222, 226, 230));
         table.setSelectionBackground(new Color(232, 244, 253));
         table.setFont(new Font("Verdana", Font.PLAIN, 12));
         
-        // NOVO: ADICIONAR MOUSELISTENER - CLIQUE NA CONSULTA
+        // NOVO: MouseListener com clique direito E esquerdo
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int linha = table.rowAtPoint(e.getPoint());
                 int coluna = table.columnAtPoint(e.getPoint());
                 
-                if (linha >= 0 && coluna >= 1) { // Não clica na coluna de horário
+                if (linha >= 0 && coluna >= 1) {
                     String chave = linha + "," + coluna;
                     Consulta consulta = mapaConsultas.get(chave);
                     
                     if (consulta != null) {
-                        // Abre TelaAgenda com a consulta selecionada
-                        TelaAgenda telaAgenda = new TelaAgenda();
-                        telaAgenda.setVisible(true);
-                        telaAgenda.toFront();
+                        if (SwingUtilities.isRightMouseButton(e)) {
+                            // CLIQUE DIREITO: Menu popup para mudar status
+                            mostrarMenuStatus(e, consulta);
+                        } else if (SwingUtilities.isLeftMouseButton(e)) {
+                            // CLIQUE ESQUERDO: Abre TelaAgenda
+                            TelaAgenda telaAgenda = new TelaAgenda();
+                            telaAgenda.setVisible(true);
+                            telaAgenda.toFront();
+                        }
                     }
                 }
             }
@@ -543,6 +559,99 @@ public class TelaAgendaCalendario {
         table.getTableHeader().setForeground(COR_TEXTO);
         table.getTableHeader().setFont(new Font("Verdana", Font.BOLD, 12));
         table.getTableHeader().setPreferredSize(new Dimension(0, 40));
+    }
+    
+    // NOVO: Menu popup para mudar status da consulta
+    private void mostrarMenuStatus(MouseEvent e, Consulta consulta) {
+        JPopupMenu popup = new JPopupMenu();
+        
+        // Menu items baseados no status atual
+        if (consulta.getStatus() != Consulta.StatusConsulta.REALIZADA) {
+            JMenuItem itemRealizada = new JMenuItem("✅ Marcar como Realizada");
+            itemRealizada.addActionListener(ev -> alterarStatusConsulta(consulta, Consulta.StatusConsulta.REALIZADA));
+            popup.add(itemRealizada);
+        }
+        
+        if (consulta.getStatus() != Consulta.StatusConsulta.CANCELADA) {
+            JMenuItem itemCancelada = new JMenuItem("❌ Cancelar Consulta");
+            itemCancelada.addActionListener(ev -> alterarStatusConsulta(consulta, Consulta.StatusConsulta.CANCELADA));
+            popup.add(itemCancelada);
+        }
+        
+        if (consulta.getStatus() != Consulta.StatusConsulta.AGENDADA) {
+            JMenuItem itemAgendada = new JMenuItem("🔄 Reagendar");
+            itemAgendada.addActionListener(ev -> alterarStatusConsulta(consulta, Consulta.StatusConsulta.AGENDADA));
+            popup.add(itemAgendada);
+        }
+        
+        popup.addSeparator();
+        JMenuItem itemInfo = new JMenuItem("ℹ️ Ver Detalhes");
+        itemInfo.addActionListener(ev -> {
+            String info = String.format(
+                "Paciente: %s\nMédico: %s\nData: %s\nStatus: %s\nObservações: %s",
+                consulta.getPaciente().getNome(),
+                consulta.getMedico().getNome(),
+                consulta.getDataHorarioFormatado(),
+                consulta.getStatus().getDescricao(),
+                consulta.getObservacoes() != null ? consulta.getObservacoes() : "Nenhuma"
+            );
+            JOptionPane.showMessageDialog(frmAgendamento, info, "Detalhes da Consulta", JOptionPane.INFORMATION_MESSAGE);
+        });
+        popup.add(itemInfo);
+        
+        popup.show(table, e.getX(), e.getY());
+    }
+    
+    // NOVO: Método para alterar status da consulta
+    private void alterarStatusConsulta(Consulta consulta, Consulta.StatusConsulta novoStatus) {
+        String statusTexto = novoStatus.getDescricao();
+        
+        int confirmacao = JOptionPane.showConfirmDialog(
+            frmAgendamento,
+            String.format("Confirma alterar status para '%s'?\n\nPaciente: %s\nMédico: %s\nData: %s", 
+                statusTexto,
+                consulta.getPaciente().getNome(),
+                consulta.getMedico().getNome(),
+                consulta.getDataHorarioFormatado()
+            ),
+            "Confirmar Alteração",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (confirmacao == JOptionPane.YES_OPTION) {
+            try {
+                // Se for marcar como realizada, perguntar por observações
+                if (novoStatus == Consulta.StatusConsulta.REALIZADA) {
+                    String observacoes = JOptionPane.showInputDialog(
+                        frmAgendamento,
+                        "Observações da consulta realizada:",
+                        "Observações",
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+                    if (observacoes != null) {
+                        consulta.setObservacoes(observacoes.trim());
+                    }
+                }
+                
+                consulta.setStatus(novoStatus);
+                consultaDAO.update(consulta);
+                
+                JOptionPane.showMessageDialog(frmAgendamento, 
+                    "Status alterado para: " + statusTexto, 
+                    "Sucesso", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Recarregar a agenda para mostrar nova cor
+                carregarConsultasReais();
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frmAgendamento, 
+                    "Erro ao alterar status: " + ex.getMessage(), 
+                    "Erro", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
     
     private void atualizarTabelaAgendamento() {
@@ -578,6 +687,7 @@ public class TelaAgendaCalendario {
         }
     }
 
+    // MODIFICADO: Renderer com cores por status
     private class AgendamentoRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -585,10 +695,32 @@ public class TelaAgendaCalendario {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             
             if (value != null && !value.toString().trim().isEmpty()) {
-                setBackground(new Color(232, 244, 253));
-                setForeground(COR_PRINCIPAL);
+                // Buscar consulta para determinar cor por status
+                String chave = row + "," + column;
+                Consulta consulta = mapaConsultas.get(chave);
+                
+                if (consulta != null) {
+                    // CORES POR STATUS
+                    switch (consulta.getStatus()) {
+                        case AGENDADA:
+                            setBackground(COR_AGENDADA);  // Azul
+                            break;
+                        case REALIZADA:
+                            setBackground(COR_REALIZADA); // Verde
+                            break;
+                        case CANCELADA:
+                            setBackground(COR_CANCELADA); // Vermelho
+                            break;
+                        default:
+                            setBackground(COR_AGENDADA);
+                    }
+                } else {
+                    setBackground(COR_AGENDADA); // Padrão azul
+                }
+                
+                setForeground(Color.WHITE);
                 setFont(new Font("Verdana", Font.BOLD, 11));
-                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); // NOVO: Cursor de clique
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             } else {
                 setBackground(Color.WHITE);
                 setForeground(COR_TEXTO);
@@ -618,7 +750,7 @@ public class TelaAgendaCalendario {
         }
         
         // Limpar mapa de consultas
-        mapaConsultas.clear(); // NOVO: Limpar mapa
+        mapaConsultas.clear();
         
         for(Consulta consulta : consultas) {
             adicionarConsultaNaTabela(consulta);
@@ -642,7 +774,7 @@ public class TelaAgendaCalendario {
                               consulta.getMedico().getNome();
                 modeloTabela.setValueAt(texto, linha, coluna);
                 
-                // NOVO: Armazenar consulta no mapa para clique
+                // Armazenar consulta no mapa para clique
                 String chave = linha + "," + coluna;
                 mapaConsultas.put(chave, consulta);
             }

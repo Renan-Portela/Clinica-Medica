@@ -5,6 +5,7 @@ import br.com.clinica.model.*;
 import br.com.clinica.service.EmailService;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,7 +14,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.ArrayList; // ADICIONADO
+import java.util.ArrayList;
 import javax.swing.text.MaskFormatter;
 import java.text.ParseException;
 
@@ -67,7 +68,7 @@ public class TelaAgendamento extends JFrame {
         
         cbMedicos = new JComboBox<>();
         cbMedicos.setBounds(130, 70, 400, 25);
-        cbMedicos.addActionListener(e -> carregarHorariosDisponiveis()); // ADICIONADO
+        cbMedicos.addActionListener(e -> carregarHorariosDisponiveis());
         mainPanel.add(cbMedicos);
         
         // Paciente
@@ -79,6 +80,15 @@ public class TelaAgendamento extends JFrame {
         cbPacientes = new JComboBox<>();
         cbPacientes.setBounds(130, 110, 400, 25);
         mainPanel.add(cbPacientes);
+        
+        // Botão Histórico
+        JButton btnHistorico = new JButton("Histórico");
+        btnHistorico.setBounds(540, 110, 90, 25);
+        btnHistorico.setBackground(new Color(0, 102, 153));
+        btnHistorico.setForeground(Color.WHITE);
+        btnHistorico.setFont(new Font("Arial", Font.BOLD, 10));
+        btnHistorico.addActionListener(e -> abrirHistoricoPaciente());
+        mainPanel.add(btnHistorico);
         
         // Data
         JLabel lblData = new JLabel("Data:");
@@ -99,7 +109,7 @@ public class TelaAgendamento extends JFrame {
         txtData.setBackground(Color.WHITE);
         txtData.setFont(new Font("Arial", Font.PLAIN, 12));
         txtData.setToolTipText("dd/MM/yyyy");
-        // ADICIONADO: Listener para atualizar horários quando data for digitada
+        // Listener para atualizar horários quando data for digitada
         txtData.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 if (txtData.getText().length() == 10) { // dd/MM/yyyy completo
@@ -193,7 +203,7 @@ public class TelaAgendamento extends JFrame {
         }
     }
     
-    // NOVO MÉTODO: Horários ocupados SOMEM do combobox
+    // Horários ocupados SOMEM do combobox
     private void carregarHorariosDisponiveis() {
         cbHorarios.removeAllItems();
         
@@ -241,6 +251,200 @@ public class TelaAgendamento extends JFrame {
             for (String horario : todosHorarios) {
                 cbHorarios.addItem(horario);
             }
+        }
+    }
+    
+    // Método para abrir histórico do paciente
+    private void abrirHistoricoPaciente() {
+        Paciente pacienteSelecionado = (Paciente) cbPacientes.getSelectedItem();
+        
+        if (pacienteSelecionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecione um paciente primeiro!");
+            return;
+        }
+        
+        try {
+            // Buscar consultas do paciente
+            List<Consulta> todasConsultas = consultaDAO.findAll();
+            List<Consulta> consultasPaciente = new ArrayList<>();
+            
+            for (Consulta consulta : todasConsultas) {
+                if (consulta.getPaciente().getCpf().equals(pacienteSelecionado.getCpf())) {
+                    consultasPaciente.add(consulta);
+                }
+            }
+            
+            if (consultasPaciente.isEmpty()) {
+                JOptionPane.showMessageDialog(this, 
+                    "Nenhuma consulta encontrada para: " + pacienteSelecionado.getNome());
+                return;
+            }
+            
+            // Criar popup com histórico
+            mostrarHistoricoPopup(pacienteSelecionado, consultasPaciente);
+            
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Erro ao carregar histórico: " + ex.getMessage());
+        }
+    }
+    
+    // MODIFICADO: Popup com histórico do paciente - AGORA COM EDIÇÃO
+    private void mostrarHistoricoPopup(Paciente paciente, List<Consulta> consultas) {
+        JDialog dialog = new JDialog(this, "Histórico - " + paciente.getNome(), true);
+        dialog.setSize(900, 600);
+        dialog.setLocationRelativeTo(this);
+        
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        // Header
+        JLabel lblHeader = new JLabel("Histórico de Consultas - " + paciente.getNome());
+        lblHeader.setFont(new Font("Arial", Font.BOLD, 16));
+        lblHeader.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.add(lblHeader, BorderLayout.NORTH);
+        
+        // Info sobre edição
+        JLabel lblInfo = new JLabel("Dica: Clique duas vezes na coluna 'Observações' para editar");
+        lblInfo.setFont(new Font("Arial", Font.ITALIC, 11));
+        lblInfo.setForeground(Color.GRAY);
+        lblInfo.setBorder(BorderFactory.createEmptyBorder(0, 10, 5, 10));
+        
+        JPanel infoPanel = new JPanel(new BorderLayout());
+        infoPanel.add(lblHeader, BorderLayout.NORTH);
+        infoPanel.add(lblInfo, BorderLayout.SOUTH);
+        panel.add(infoPanel, BorderLayout.NORTH);
+        
+        // Tabela EDITÁVEL
+        String[] colunas = {"ID", "Data/Hora", "Médico", "Status", "Observações"};
+        DefaultTableModel modeloTabela = new DefaultTableModel(colunas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 4; // Apenas coluna de Observações é editável
+            }
+        };
+        
+        // Preencher dados
+        for (Consulta consulta : consultas) {
+            Object[] linha = {
+                consulta.getId(),
+                consulta.getDataHorarioFormatado(),
+                consulta.getMedico().getNome(),
+                consulta.getStatus().getDescricao(),
+                consulta.getObservacoes() != null ? consulta.getObservacoes() : ""
+            };
+            modeloTabela.addRow(linha);
+        }
+        
+        JTable tabela = new JTable(modeloTabela);
+        tabela.setRowHeight(30);
+        tabela.setFont(new Font("Arial", Font.PLAIN, 12));
+        
+        // Configurar larguras das colunas
+        tabela.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
+        tabela.getColumnModel().getColumn(1).setPreferredWidth(150); // Data
+        tabela.getColumnModel().getColumn(2).setPreferredWidth(150); // Médico
+        tabela.getColumnModel().getColumn(3).setPreferredWidth(100); // Status
+        tabela.getColumnModel().getColumn(4).setPreferredWidth(300); // Observações
+        
+        JScrollPane scroll = new JScrollPane(tabela);
+        panel.add(scroll, BorderLayout.CENTER);
+        
+        // Botões
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        
+        // NOVO: Botão Salvar Modificações
+        JButton btnSalvar = new JButton("Salvar Modificações");
+        btnSalvar.setBackground(new Color(76, 175, 80));
+        btnSalvar.setForeground(Color.WHITE);
+        btnSalvar.setFont(new Font("Arial", Font.BOLD, 12));
+        btnSalvar.addActionListener(e -> {
+            salvarModificacoesHistorico(dialog, tabela, modeloTabela, consultas);
+        });
+        buttonPanel.add(btnSalvar);
+        
+        JButton btnVerAgenda = new JButton("Ver Agenda Completa");
+        btnVerAgenda.setBackground(new Color(0, 102, 153));
+        btnVerAgenda.setForeground(Color.WHITE);
+        btnVerAgenda.addActionListener(e -> {
+            dialog.dispose();
+            TelaAgenda telaAgenda = new TelaAgenda();
+            telaAgenda.setVisible(true);
+        });
+        buttonPanel.add(btnVerAgenda);
+        
+        JButton btnFechar = new JButton("Fechar");
+        btnFechar.addActionListener(e -> dialog.dispose());
+        buttonPanel.add(btnFechar);
+        
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+    
+    // NOVO: Método para salvar modificações do histórico
+    private void salvarModificacoesHistorico(JDialog dialog, JTable tabela, DefaultTableModel modelo, List<Consulta> consultas) {
+        // Confirmação antes de salvar
+        int opcao = JOptionPane.showConfirmDialog(
+            dialog,
+            "Deseja realmente salvar todas as modificações realizadas?",
+            "Confirmar Alterações",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (opcao != JOptionPane.YES_OPTION) {
+            return;
+        }
+        
+        try {
+            boolean algumaMudanca = false;
+            
+            // Percorrer todas as linhas da tabela
+            for (int i = 0; i < modelo.getRowCount(); i++) {
+                Long idConsulta = (Long) modelo.getValueAt(i, 0);
+                String novasObservacoes = (String) modelo.getValueAt(i, 4);
+                
+                // Encontrar a consulta correspondente
+                for (Consulta consulta : consultas) {
+                    if (consulta.getId().equals(idConsulta)) {
+                        String observacoesAntigas = consulta.getObservacoes();
+                        
+                        // Verificar se houve mudança
+                        boolean mudou = false;
+                        if (observacoesAntigas == null && novasObservacoes != null && !novasObservacoes.trim().isEmpty()) {
+                            mudou = true;
+                        } else if (observacoesAntigas != null && !observacoesAntigas.equals(novasObservacoes)) {
+                            mudou = true;
+                        }
+                        
+                        if (mudou) {
+                            consulta.setObservacoes(novasObservacoes != null ? novasObservacoes.trim() : "");
+                            consultaDAO.update(consulta);
+                            algumaMudanca = true;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            if (algumaMudanca) {
+                JOptionPane.showMessageDialog(dialog, 
+                    "Modificações salvas com sucesso!",
+                    "Sucesso", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(dialog, 
+                    "Nenhuma modificação foi detectada.",
+                    "Informação", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+            
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(dialog, 
+                "Erro ao salvar modificações: " + ex.getMessage(),
+                "Erro", 
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
     
