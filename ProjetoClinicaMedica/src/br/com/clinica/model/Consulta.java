@@ -12,18 +12,21 @@ public class Consulta {
     private StatusConsulta status;
     
     public enum StatusConsulta {
-        AGENDADA("Agendada"),
-        REALIZADA("Realizada"), 
-        CANCELADA("Cancelada"),
-        NAO_COMPARECEU("Não Compareceu");
+        AGENDADA("Agendada", "A"),
+        REALIZADA("Realizada", "R"), 
+        CANCELADA("Cancelada", "C"),
+        NAO_COMPARECEU("Não Compareceu", "N"); // Adicionado sigla 'N'
         
         private final String descricao;
+        private final String sigla; // Novo campo para a sigla
         
-        StatusConsulta(String descricao) {
+        StatusConsulta(String descricao, String sigla) { // Construtor atualizado
             this.descricao = descricao;
+            this.sigla = sigla;
         }
         
         public String getDescricao() { return descricao; }
+        public String getSigla() { return sigla; } // Novo método para obter a sigla
     }
     
     public Consulta() {
