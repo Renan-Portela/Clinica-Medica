@@ -1,115 +1,80 @@
 package br.com.clinica.view;
 
 import br.com.clinica.config.DatabaseConnection;
+import br.com.clinica.dao.ConsultaDAO;
+import br.com.clinica.dao.PacienteDAO;
+import br.com.clinica.model.Consulta;
+import br.com.clinica.model.Paciente;
+import br.com.clinica.util.ValidadorCPF;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.text.MaskFormatter;
 import java.awt.*;
-import java.awt.event.ActionEvent; // Importacao especifica para ActionEvent
-import java.awt.event.ActionListener; // Importacao especifica para ActionListener
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.net.URL; // Importacao adicionada
+import java.awt.geom.RoundRectangle2D;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.text.ParseException;
+import java.util.List;
 
 /**
- * Tela principal do sistema de gestao de clinica medica.
- * Apresenta um layout dividido com uma imagem informativa a esquerda e um grid de botoes a direita.
- * O design e moderno, com layout responsivo e feedback visual nos botoes.
- * Interage com DatabaseConnection para verificar o status do banco de dados.
+ * Tela principal do sistema de gestão de clínica médica.
+ * Apresenta um layout dividido com uma imagem informativa à esquerda e um grid de botões à direita.
+ * O design é moderno, com layout responsivo e feedback visual nos botões.
+ * Interage com DatabaseConnection para verificar o status do banco de dados e com os DAOs
+ * para funcionalidades como a busca de histórico de paciente.
  *
  * Estrutura da interface:
- * - Header: Contem o titulo do sistema e o status da conexao com o banco de dados.
- * - Centro: Dividido em duas areas (50% cada) por um JSplitPane:
- * - Esquerda: Exibe uma imagem medica.
- * - Direita: Contem um grid de botoes para navegacao as telas principais do sistema.
- * - Footer: Apresenta informacoes de copyright ou versao do sistema.
- *
- * Funcionalidades principais:
- * - Verificacao e exibicao do status da conexao com o banco de dados.
- * - Navegacao para as telas de Agendamento, Agenda (Calendario), Medicos, Pacientes e Relatorios.
- * - Botao de saida do sistema com confirmacao.
+ * - Header: Contém a logo, título do sistema, e botões de ação ("Sobre").
+ * - Centro: Dividido em duas áreas por um JSplitPane:
+ * - Esquerda: Exibe uma imagem médica.
+ * - Direita: Contém um grid de botões para navegação às telas principais.
+ * - Footer: Apresenta informações de copyright ou versão do sistema.
  */
 public class TelaPrincipal extends JFrame {
 
     private static final long serialVersionUID = 1L;
 
-    // Paleta de cores medica profissional
+    // Paleta de cores médica profissional
     private static final Color PRIMARY_BLUE = new Color(52, 144, 220);
-    private static final Color MEDICAL_GREEN = new Color(76, 175, 80);
     private static final Color CLEAN_WHITE = new Color(255, 255, 255);
     private static final Color LIGHT_GRAY = new Color(248, 249, 250);
     private static final Color DARK_TEXT = new Color(52, 58, 64);
-    private static final Color ACCENT_RED = new Color(220, 53, 69);
-    private static final Color ORANGE_ACCENT = new Color(255, 152, 0);
-    private static final Color PURPLE_ACCENT = new Color(156, 39, 176);
-    private static final Color GRAY_ACCENT = new Color(96, 125, 139);
 
     // Componentes principais da interface
     private JPanel contentPane;
-    private JPanel headerPanel;
-    private JSplitPane centralPanel; // Alterado para JSplitPane para layout responsivo
-    private JPanel imagemPanel;
     private JPanel botoesPanel;
-    private JPanel footerPanel;
 
-    // Labels informativos
-    private JLabel lblTitulo;
-    private JLabel lblSubtitulo;
-    private JLabel lblStatus;
-    private JLabel lblRodape;
-    private JLabel lblImagem;
-
-    // Botoes funcionais para navegacao entre telas
-    private JButton btnMedicos;
-    private JButton btnPacientes;
-    private JButton btnConsultas;
-    private JButton btnAgenda;
-    private JButton btnRelatorios;
-    private JButton btnSair;
-
-    /**
-     * Metodo principal que inicia a aplicacao Swing.
-     * Cria e exibe a TelaPrincipal na Event Dispatch Thread (EDT).
-     */
-    public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() { // Substituicao de lambda por classe anonima
-            @Override
-            public void run() {
-                try {
-                    TelaPrincipal frame = new TelaPrincipal();
-                    frame.setVisible(true);
-                } catch (Exception e) {
-                    // Captura excecoes na inicializacao da interface
-                    e.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Erro inesperado ao iniciar o sistema: " + e.getMessage(), "Erro de Inicializacao", JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
-    }
+    // DAOs para funcionalidades extras
+    private PacienteDAO pacienteDAO;
+    private ConsultaDAO consultaDAO;
 
     /**
      * Construtor principal da TelaPrincipal.
-     * Inicializa a interface com um layout dividido (imagem a esquerda, botoes a direita).
-     * Configura a janela, cria os componentes, organiza o layout e aplica estilos visuais.
+     * Inicializa a interface, os DAOs necessários e configura os componentes visuais.
      */
     public TelaPrincipal() {
+        this.pacienteDAO = new PacienteDAO();
+        this.consultaDAO = new ConsultaDAO();
         configurarJanelaPrincipal();
-        inicializarComponentes(); // Chama verificarConexaoBanco aqui dentro
-        criarLayoutDividido();
-        aplicarEstilosVisuais();
+        inicializarComponentes();
+        verificarConexaoBanco();
     }
-
+    
     /**
-     * Configura as propriedades basicas da janela principal (JFrame).
-     * Define a operacao de fechamento, titulo, estado de tela maximizada e posicao inicial.
+     * Configura as propriedades básicas da janela principal (JFrame).
      */
     private void configurarJanelaPrincipal() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setTitle("Sistema de Gestao Clinica Medica");
-        setExtendedState(JFrame.MAXIMIZED_BOTH); // Maximiza a janela na tela
-        setLocationRelativeTo(null); // Centraliza a janela
+        setTitle("Sistema de Gestão Clínica Médica");
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
+        setLocationRelativeTo(null);
 
         contentPane = new JPanel(new BorderLayout());
         contentPane.setBackground(LIGHT_GRAY);
@@ -118,313 +83,406 @@ public class TelaPrincipal extends JFrame {
 
     /**
      * Inicializa todos os componentes visuais da interface principal.
-     * Cria os paineis, labels informativos, carrega a imagem medica,
-     * e cria os botoes funcionais, alem de verificar a conexao com o banco de dados.
      */
     private void inicializarComponentes() {
-        criarPaineis();
-        criarLabelsInformativos();
-        carregarImagemMedica();
-        criarBotoesFuncionais();
-        verificarConexaoBanco(); // Verifica e atualiza o status da conexao
+        criarLayoutDividido();
     }
 
     /**
-     * Cria e configura os paineis principais que compoem a estrutura da interface.
-     * Inclui o headerPanel, o centralPanel (como JSplitPane), imagemPanel, botoesPanel e footerPanel.
+     * Cria e organiza o layout principal da interface, incluindo cabeçalho,
+     * painel central dividido e rodapé.
      */
-    private void criarPaineis() {
-        headerPanel = new JPanel(new BorderLayout());
+    private void criarLayoutDividido() {
+        contentPane.add(criarHeader(), BorderLayout.NORTH);
+        contentPane.add(criarPainelCentral(), BorderLayout.CENTER);
+        contentPane.add(criarFooter(), BorderLayout.SOUTH);
+    }
+    
+    /**
+     * Cria o painel de cabeçalho com logo, título, subtítulo e botões de ação.
+     * @return O JPanel do cabeçalho configurado.
+     */
+    private JPanel criarHeader() {
+        JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBackground(PRIMARY_BLUE);
         headerPanel.setPreferredSize(new Dimension(0, 100));
-        headerPanel.setBorder(new EmptyBorder(20, 30, 20, 30));
+        headerPanel.setBorder(new EmptyBorder(10, 20, 10, 30));
 
-        imagemPanel = new JPanel(new BorderLayout());
-        imagemPanel.setBackground(CLEAN_WHITE);
-        imagemPanel.setBorder(new EmptyBorder(20, 20, 20, 20)); // Borda interna
+        JPanel leftContentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
+        leftContentPanel.setOpaque(false);
 
-        botoesPanel = new JPanel(new GridLayout(3, 2, 25, 25)); // Grid 3x2 com espacamento
-        botoesPanel.setBackground(LIGHT_GRAY);
-        botoesPanel.setBorder(new EmptyBorder(40, 40, 40, 40)); // Padding ao redor do grid
+        JLabel lblLogo = new JLabel("");
+        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblLogo.setForeground(DARK_TEXT);
+        lblLogo.setPreferredSize(new Dimension(80, 80));
+        lblLogo.setHorizontalAlignment(SwingConstants.CENTER);
+        lblLogo.setVerticalAlignment(SwingConstants.CENTER);
+        lblLogo.setBorder(BorderFactory.createDashedBorder(CLEAN_WHITE, 2, 5, 2, false));
+        lblLogo.setOpaque(true);
+        lblLogo.setBackground(LIGHT_GRAY);
+        
+        leftContentPanel.add(lblLogo);
 
-        centralPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, imagemPanel, botoesPanel);
-        centralPanel.setResizeWeight(0.5); // Divide o peso de redimensionamento 50/50
-        centralPanel.setOneTouchExpandable(false); // Nao mostra o botao de expandir/recolher
-        centralPanel.setDividerSize(5); // Largura do divisor
-        centralPanel.setBorder(null); // Remove a borda padrao do JSplitPane
+        JPanel titulosPanel = new JPanel();
+        titulosPanel.setLayout(new BoxLayout(titulosPanel, BoxLayout.Y_AXIS));
+        titulosPanel.setOpaque(false);
 
-        footerPanel = new JPanel(new BorderLayout());
-        footerPanel.setBackground(DARK_TEXT);
-        footerPanel.setPreferredSize(new Dimension(0, 50));
-        footerPanel.setBorder(new EmptyBorder(15, 30, 15, 30));
-    }
-
-    /**
-     * Cria e inicializa os labels informativos da interface.
-     * Define o titulo principal, o subtitulo, o label de status da conexao e o rodape.
-     */
-    private void criarLabelsInformativos() {
-        lblTitulo = new JLabel("SISTEMA DE GESTAO CLINICA MEDICA");
+        JLabel lblTitulo = new JLabel("ClinicSync - Sistema de Gestão de Clínica médica.");
         lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 28));
         lblTitulo.setForeground(CLEAN_WHITE);
 
-        lblSubtitulo = new JLabel("Gerencie consultas, pacientes e medicos de forma eficiente");
+        JLabel lblSubtitulo = new JLabel("Gerencie consultas, pacientes e médicos de forma eficiente");
         lblSubtitulo.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         lblSubtitulo.setForeground(new Color(255, 255, 255, 200));
+        
+        titulosPanel.add(Box.createVerticalGlue());
+        titulosPanel.add(lblTitulo);
+        titulosPanel.add(Box.createVerticalStrut(5));
+        titulosPanel.add(lblSubtitulo);
+        titulosPanel.add(Box.createVerticalGlue());
+        
+        leftContentPanel.add(titulosPanel);
 
-        lblStatus = new JLabel(""); // Inicialmente sem texto/cor, definido por verificarConexaoBanco()
-        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        headerRight.setOpaque(false);
+        
+        JButton btnSobre = criarBotaoHeader("Sobre", e -> abrirDialogoSobre());
+        headerRight.add(btnSobre);
 
-        lblRodape = new JLabel("Sistema desenvolvido para Projeto Academico - Versao 1.0");
+        headerPanel.add(leftContentPanel, BorderLayout.WEST);
+        headerPanel.add(headerRight, BorderLayout.EAST);
+        
+        return headerPanel;
+    }
+
+    /**
+     * Cria o painel central dividido, com imagem à esquerda e botões à direita.
+     * @return O JSplitPane configurado.
+     */
+    private JSplitPane criarPainelCentral() {
+        botoesPanel = new JPanel(new GridLayout(3, 2, 25, 25));
+        botoesPanel.setBackground(LIGHT_GRAY);
+        botoesPanel.setBorder(new EmptyBorder(40, 40, 40, 40));
+        
+        criarBotoesFuncionais();
+
+        JSplitPane centralPanel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, criarPainelImagem(), botoesPanel);
+        centralPanel.setResizeWeight(0.5);
+        centralPanel.setDividerSize(5);
+        centralPanel.setBorder(null);
+
+        return centralPanel;
+    }
+
+    /**
+     * Cria o painel que exibe a imagem principal da aplicação.
+     * @return O JPanel da imagem.
+     */
+    private JPanel criarPainelImagem() {
+        JPanel imagemPanel = new JPanel(new BorderLayout());
+        imagemPanel.setBackground(CLEAN_WHITE);
+        imagemPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        
+        JLabel lblImagem = new JLabel();
+        lblImagem.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        URL imageUrl = getClass().getResource("/br/com/clinica/recursos/medicos-clinica.jpg");
+        if (imageUrl != null) {
+            lblImagem.setIcon(new ImageIcon(imageUrl));
+        } else {
+            lblImagem.setText("Imagem não encontrada");
+        }
+        
+        imagemPanel.add(lblImagem, BorderLayout.CENTER);
+        return imagemPanel;
+    }
+
+    /**
+     * Cria o painel de rodapé da aplicação.
+     * @return O JPanel do rodapé.
+     */
+    private JPanel criarFooter() {
+        JPanel footerPanel = new JPanel(new BorderLayout());
+        footerPanel.setBackground(DARK_TEXT);
+        footerPanel.setPreferredSize(new Dimension(0, 50));
+        footerPanel.setBorder(new EmptyBorder(15, 30, 15, 30));
+        
+        JLabel lblRodape = new JLabel("Sistema desenvolvido por JKLR² - Versão 1.1");
         lblRodape.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         lblRodape.setForeground(new Color(255, 255, 255, 180));
         lblRodape.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel lblStatus = new JLabel("");
+        lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        
+        footerPanel.add(lblRodape, BorderLayout.CENTER);
+        footerPanel.add(lblStatus, BorderLayout.EAST);
+        
+        return footerPanel;
     }
 
     /**
-     * Carrega e configura a imagem medica no painel esquerdo da interface.
-     * Tenta carregar a imagem de recursos internos do JAR ou de um caminho relativo.
-     * Se a imagem nao for encontrada, um placeholder informativo e exibido.
-     * A imagem e redimensionada dinamicamente para se ajustar ao tamanho do painel.
-     */
-    private void carregarImagemMedica() {
-        lblImagem = new JLabel();
-        lblImagem.setHorizontalAlignment(SwingConstants.CENTER);
-        lblImagem.setVerticalAlignment(SwingConstants.CENTER);
-        lblImagem.setBackground(new Color(245, 245, 245));
-        lblImagem.setOpaque(true);
-        lblImagem.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 2));
-
-        URL imageUrl = getClass().getResource("/imagens/medicos-clinica.jpg"); // Preferencia por recursos
-        if (imageUrl == null) {
-            // Tenta caminho relativo se nao encontrado em recursos
-            imageUrl = getClass().getClassLoader().getResource("br/com/clinica/recursos/medicos-clinica.jpg");
-        }
-
-        if (imageUrl != null) {
-            ImageIcon originalIcon = new ImageIcon(imageUrl);
-            
-            // Adiciona um ComponentListener para redimensionar a imagem dinamicamente
-            imagemPanel.addComponentListener(new ComponentAdapter() {
-                @Override
-                public void componentResized(ComponentEvent e) {
-                    int panelWidth = imagemPanel.getWidth();
-                    int panelHeight = imagemPanel.getHeight();
-                    
-                    if (panelWidth > 0 && panelHeight > 0 && originalIcon.getIconWidth() > 0) {
-                        Image img = originalIcon.getImage();
-                        double scaleX = (double) panelWidth / originalIcon.getIconWidth();
-                        double scaleY = (double) panelHeight / originalIcon.getIconHeight();
-                        double scale = Math.min(scaleX, scaleY); // Mantem a proporcao e cabe no painel
-
-                        Image scaledImg = img.getScaledInstance((int) (originalIcon.getIconWidth() * scale), 
-                                                                (int) (originalIcon.getIconHeight() * scale), 
-                                                                Image.SCALE_SMOOTH);
-                        lblImagem.setIcon(new ImageIcon(scaledImg));
-                        lblImagem.setText(""); // Remove o texto do placeholder se a imagem for carregada
-                    }
-                }
-            });
-        } else {
-            // Placeholder se a imagem nao for encontrada
-            lblImagem.setText("<html><div style='text-align: center; color: #666; font-size: 16px;'>" +
-                             "<br><br><br><br><br><br>" +
-                             "IMAGEM MEDICA<br>" +
-                             "NAO ENCONTRADA<br><br>" +
-                             "Verifique:<br>" +
-                             "/src/main/resources/imagens/medicos-clinica.jpg<br>ou<br>" +
-                             "/src/br/com/clinica/recursos/medicos-clinica.jpg" +
-                             "<br><br><br><br><br><br>" +
-                             "</div></html>");
-        }
-        imagemPanel.add(lblImagem, BorderLayout.CENTER);
-    }
-
-    /**
-     * Cria e configura os botoes funcionais para navegacao entre as telas principais.
-     * Os botoes sao dispostos em um grid 3x2 no painel direito da interface.
-     * Cada botao tem uma acao associada para abrir a tela correspondente.
+     * Cria e adiciona os botões funcionais ao painel principal.
+     *
+     * Este método utiliza Expressões Lambda (sintaxe 'e -> ...') para definir
+     * as ações dos botões. Uma expressão lambda é uma forma compacta de
+     * representar uma função anônima.
+     *
+     * No contexto deste método, cada lambda implementa a interface ActionListener,
+     * que possui um único método, o 'actionPerformed(ActionEvent e)'. O 'e'
+     * representa o ActionEvent, e o código à direita da seta '->' é a ação
+     * a ser executada quando o botão é clicado.
+     *
+     * Esta abordagem é usada por ser mais concisa e legível do que a alternativa
+     * tradicional com classes anônimas, que seria muito mais longa para cada botão.
      */
     private void criarBotoesFuncionais() {
-        // Botao Agendar Consulta
-        btnConsultas = criarBotaoModerno("Agendar Consulta", MEDICAL_GREEN, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new TelaAgendamento().setVisible(true);
-            }
-        });
-
-        // Botao Visualizar Agenda (Calendario)
-        btnAgenda = criarBotaoModerno("Visualizar Agenda", PRIMARY_BLUE, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new TelaAgendaCalendario().setVisible(true);
-            }
-        });
-
-        // Botao Gerenciar Medicos
-        btnMedicos = criarBotaoModerno("Gerenciar Medicos", PURPLE_ACCENT, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new TelaMedicos().setVisible(true);
-            }
-        });
-
-        // Botao Gerenciar Pacientes
-        btnPacientes = criarBotaoModerno("Gerenciar Pacientes", ORANGE_ACCENT, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new TelaPacientes().setVisible(true);
-            }
-        });
-
-        // Botao Relatorios
-        btnRelatorios = criarBotaoModerno("Relatorios", GRAY_ACCENT, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new TelaRelatorios().setVisible(true);
-            }
-        });
-
-        // Botao Sair do Sistema
-        btnSair = criarBotaoModerno("Sair do Sistema", ACCENT_RED, new ActionListener() { // Substituicao de lambda
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                confirmarSaida(e);
-            }
-        });
-        
-        // Ordem de adicao define posicao no grid:
-        botoesPanel.add(btnConsultas);
-        botoesPanel.add(btnAgenda);
-        botoesPanel.add(btnMedicos);
-        botoesPanel.add(btnPacientes);
-        botoesPanel.add(btnRelatorios);
-        botoesPanel.add(btnSair);
+        botoesPanel.add(criarBotaoModerno("Agendar Consulta", e -> new TelaNovoAgendamento().setVisible(true)));
+        botoesPanel.add(criarBotaoModerno("Visualizar Agenda", e -> new TelaAgendaCalendario().setVisible(true)));
+        botoesPanel.add(criarBotaoModerno("Gerenciar Médicos", e -> new TelaMedicos().setVisible(true)));
+        botoesPanel.add(criarBotaoModerno("Gerenciar Pacientes", e -> new TelaPacientes().setVisible(true)));
+        botoesPanel.add(criarBotaoModerno("Relatórios", e -> new TelaRelatorios().setVisible(true)));
+        botoesPanel.add(criarBotaoModerno("Histórico do Paciente", e -> abrirDialogoBuscaHistorico()));
     }
 
     /**
-     * Cria um botao moderno com estilo visual padronizado.
-     * Inclui configuracoes de fonte, cor, tamanho preferencial, borda e um efeito de hover.
-     * @param texto O texto a ser exibido no botao.
-     * @param cor A cor de fundo padrao do botao.
-     * @param acao O ActionListener a ser executado quando o botao e clicado.
-     * @return Um JButton estilizado.
+     * Abre o diálogo "Sobre" com informações dos desenvolvedores e links.
      */
-    private JButton criarBotaoModerno(String texto, Color cor, ActionListener acao) { // Adicionado ActionListener como parametro
-        JButton botao = new JButton(texto);
-        botao.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        botao.setForeground(CLEAN_WHITE);
-        botao.setBackground(cor);
-        botao.setPreferredSize(new Dimension(200, 80)); // Tamanho otimizado para grid
-        botao.setFocusPainted(false);
-        botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    private void abrirDialogoSobre() {
+        JEditorPane editorPane = new JEditorPane();
+        editorPane.setContentType("text/html");
+        editorPane.setEditable(false);
+        editorPane.setOpaque(false);
+
+        String htmlContent = "<html>"
+            + "<body style='font-family: Segoe UI; font-size: 12pt;'>"
+            + "<h2>Desenvolvedores</h2>"
+            
+            + "<p><b>José Vitor</b></p>"
+            + "<ul>"
+            + "<li><a href='https://github.com/JosVitorFerreiraDosSantosJV/JosVitorFerreiraDosSantosJV'>GitHub</a></li>"
+            + "<li><a href='https://www.linkedin.com/in/jos%C3%A9-vitor-ferreira-dos-santos/'>LinkedIn</a></li>"
+            + "</ul>"
+            + "<hr>"
+
+            + "<p><b>Karolina Zimmerman</b></p>"
+            + "<ul>"
+            + "<li><a href='https://github.com/404'>GitHub</a></li>"
+            + "<li><a href='https://www.linkedin.com/in/karolina-zimmermann-4491b5287/'>LinkedIn</a></li>"
+            + "</ul>"
+            + "<hr>"
+
+            + "<p><b>Lucas Alves</b></p>"
+            + "<ul>"
+            + "<li><a href='https://github.com/Lucas-Alves-Paula'>GitHub</a></li>"
+            + "<li><a href='https://www.linkedin.com/in/lucas-alves-a02514178/'>LinkedIn</a></li>"
+            + "</ul>"
+            + "<hr>"
+
+            + "<p><b>Ryan Alves</b></p>"
+            + "<ul>"
+            + "<li><a href='https://github.com/404'>GitHub</a></li>"
+            + "<li><a href='https://linkedin.com/in/404'>LinkedIn</a></li>"
+            + "</ul>"
+            + "<hr>"
+
+            + "<p><b>Renan Portela</b></p>"
+            + "<ul>"
+            + "<li><a href='https://github.com/Renan-Portela'>GitHub</a></li>"
+            + "<li><a href='https://www.linkedin.com/in/portela-renan/'>LinkedIn</a></li>"
+            + "</ul>"
+
+            + "</body></html>";
         
-        // Define a borda padrao
-        botao.setBorder(BorderFactory.createLineBorder(new Color(0, 0, 0, 40), 1)); // Borda fina e escura
+        editorPane.setText(htmlContent);
 
-        // Hover effect para feedback visual
-        botao.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                botao.setBackground(cor.brighter());
-                botao.setBorder(BorderFactory.createLineBorder(CLEAN_WHITE, 2)); // Borda branca e mais grossa no hover
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                botao.setBackground(cor);
-                botao.setBorder(BorderFactory.createLineBorder(new Color(0, 0, 0, 40), 1)); // Retorna a borda padrao
+        editorPane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        Desktop.getDesktop().browse(e.getURL().toURI());
+                    } catch (IOException | URISyntaxException ex) {
+                        ex.printStackTrace();
+                    }
+                }
             }
         });
-        botao.addActionListener(acao); // Adicionado o ActionListener
 
+        JOptionPane.showMessageDialog(this, editorPane, "Sobre o Sistema", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    /**
+     * Abre um diálogo customizado para buscar o histórico de um paciente pelo CPF.
+     */
+    private void abrirDialogoBuscaHistorico() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        JLabel label = new JLabel("Digite o CPF do Paciente:");
+        panel.add(label, BorderLayout.NORTH);
+
+        JFormattedTextField cpfField = null;
+        try {
+            MaskFormatter cpfMask = new MaskFormatter("###.###.###-##");
+            cpfMask.setPlaceholderCharacter('_');
+            cpfField = new JFormattedTextField(cpfMask);
+            cpfField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        } catch (ParseException e) {
+            e.printStackTrace();
+            cpfField = new JFormattedTextField();
+        }
+        panel.add(cpfField, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Buscar Histórico", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String cpf = cpfField.getText().replaceAll("[^0-9]", "");
+            if (ValidadorCPF.validar(cpf)) {
+                try {
+                    Paciente paciente = pacienteDAO.findById(cpf);
+                    if (paciente != null) {
+                        List<Consulta> historico = consultaDAO.findByPaciente(cpf);
+                        mostrarHistoricoPopup(paciente, historico);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Paciente com o CPF informado não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Erro ao buscar histórico: " + ex.getMessage(), "Erro de Sistema", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "CPF inválido. Por favor, tente novamente.", "Erro de Validação", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
+     * Exibe uma nova janela (JDialog) com o histórico de consultas de um paciente em uma tabela.
+     * @param paciente O paciente cujo histórico será exibido.
+     * @param consultas A lista de consultas do paciente.
+     */
+    private void mostrarHistoricoPopup(Paciente paciente, List<Consulta> consultas) {
+        if (consultas.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Nenhuma consulta encontrada para: " + paciente.getNome(), "Histórico Vazio", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        JDialog dialog = new JDialog(this, "Histórico - " + paciente.getNome(), true);
+        dialog.setSize(800, 500);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        String[] colunas = {"Data/Hora", "Médico", "Status", "Observações"};
+        DefaultTableModel modeloTabela = new DefaultTableModel(colunas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        for (Consulta consulta : consultas) {
+            modeloTabela.addRow(new Object[]{
+                consulta.getDataHorarioFormatado(),
+                consulta.getMedico().getNome(),
+                consulta.getStatus().getDescricao(),
+                consulta.getObservacoes()
+            });
+        }
+        
+        JTable tabela = new JTable(modeloTabela);
+        tabela.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        tabela.setRowHeight(28);
+        
+        dialog.add(new JScrollPane(tabela), BorderLayout.CENTER);
+        dialog.setVisible(true);
+    }
+    
+    /**
+     * Verifica a conexão com o banco de dados.
+     */
+    private void verificarConexaoBanco() {
+        try {
+            DatabaseConnection.getInstance().getConnection();
+            System.out.println("Conexão ao banco de dados: OK");
+        } catch (Exception ex) {
+            System.err.println("Conexão ao banco de dados: FALHOU!");
+        }
+    }
+    
+    /**
+     * Cria um botão de navegação para o cabeçalho.
+     * @param texto O texto do botão.
+     * @param acao O ActionListener para o clique.
+     * @return Um JButton configurado.
+     */
+    private JButton criarBotaoHeader(String texto, ActionListener acao) {
+        JButton botao = new JButton(texto);
+        botao.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        botao.setForeground(PRIMARY_BLUE);
+        botao.setBackground(CLEAN_WHITE);
+        botao.setFocusPainted(false);
+        botao.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        botao.addActionListener(acao);
         return botao;
     }
 
     /**
-     * Organiza o layout da interface principal.
-     * O headerPanel e posicionado ao norte, o centralPanel (JSplitPane) no centro,
-     * e o footerPanel na parte inferior da janela.
+     * Cria um botão moderno com bordas arredondadas para o grid principal.
+     * @param texto O texto do botão.
+     * @param acao O ActionListener para o clique.
+     * @return Uma instância de RoundedButton.
      */
-    private void criarLayoutDividido() {
-        // Organizar header
-        JPanel headerLeft = new JPanel();
-        headerLeft.setLayout(new BoxLayout(headerLeft, BoxLayout.Y_AXIS));
-        headerLeft.setOpaque(false);
-        headerLeft.add(lblTitulo);
-        headerLeft.add(Box.createVerticalStrut(5));
-        headerLeft.add(lblSubtitulo);
-
-        headerPanel.add(headerLeft, BorderLayout.WEST);
-        headerPanel.add(lblStatus, BorderLayout.EAST); // Status de conexao
-
-        // Adicionar paineis ao JSplitPane. A proporcao ja e configurada em criarPaineis()
-        centralPanel.setLeftComponent(imagemPanel);
-        centralPanel.setRightComponent(botoesPanel);
-        
-        // Definir a localizacao inicial do divisor
-        centralPanel.setDividerLocation(0.5); // 50% da largura total do JSplitPane
-
-        // Organizar footer
-        footerPanel.add(lblRodape, BorderLayout.CENTER);
-
-        // Adicionar paineis ao contentPane
-        contentPane.add(headerPanel, BorderLayout.NORTH);
-        contentPane.add(centralPanel, BorderLayout.CENTER); // JSplitPane agora no centro
-        contentPane.add(footerPanel, BorderLayout.SOUTH);
+    private RoundedButton criarBotaoModerno(String texto, ActionListener acao) {
+        RoundedButton botao = new RoundedButton(texto);
+        botao.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        botao.setForeground(CLEAN_WHITE);
+        botao.setBackground(PRIMARY_BLUE);
+        botao.setPreferredSize(new Dimension(200, 80));
+        botao.addActionListener(acao);
+        return botao;
     }
-
+    
     /**
-     * Aplica estilos visuais finais aos componentes da interface para um acabamento profissional.
-     * Define bordas e efeitos de sombra sutis.
+     * Classe interna para criar botões com cantos arredondados.
+     * Sobrescreve o método de pintura para desenhar uma forma customizada.
      */
-    private void aplicarEstilosVisuais() {
-        // Sombra sutil no header
-        headerPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(0, 0, 0, 30)),
-                new EmptyBorder(20, 30, 20, 30)
-        ));
-        
-        // A borda do imagemPanel e interna. A borda entre os dois lados e feita pelo JSplitPane.
-        // As bordas dos botoes sao tratadas dentro de criarBotaoModerno.
-    }
+    private class RoundedButton extends JButton {
+        private static final long serialVersionUID = 1L;
+        private Color hoverBackgroundColor;
+        private Color pressedBackgroundColor;
 
-    /**
-     * Exibe um dialogo de confirmacao antes de sair do sistema.
-     * Se o usuario confirmar, a conexao com o banco de dados e fechada e a aplicacao e encerrada.
-     * @param e O evento de acao que disparou este metodo.
-     */
-    private void confirmarSaida(java.awt.event.ActionEvent e) {
-        int opcao = JOptionPane.showConfirmDialog(
-                this,
-                "Deseja realmente sair do sistema?",
-                "Confirmar Saida",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE // Adicionado icone de pergunta
-        );
-
-        if (opcao == JOptionPane.YES_OPTION) {
-            DatabaseConnection.getInstance().closeConnection();
-            System.exit(0);
+        public RoundedButton(String text) {
+            super(text);
+            super.setContentAreaFilled(false);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
-    }
 
-    /**
-     * Verifica a conexao com o banco de dados na inicializacao da tela
-     * e atualiza o label de status no header para informar o usuario.
-     * Interage com DatabaseConnection.
-     */
-    private void verificarConexaoBanco() {
-        try {
-            DatabaseConnection.getInstance().getConnection(); // Tenta obter a conexao
-            lblStatus.setText("Conexao ao banco de dados: OK");
-            lblStatus.setForeground(MEDICAL_GREEN);
-        } catch (Exception ex) {
-            lblStatus.setText("Conexao ao banco de dados: FALHOU! " + ex.getMessage());
-            lblStatus.setForeground(ACCENT_RED);
-            System.err.println("Erro ao conectar ao banco de dados: " + ex.getMessage());
-            // Opcional: mostrar um dialogo mais detalhado ou logar para depuracao
+        @Override
+        public void setBackground(Color bg) {
+            super.setBackground(bg);
+            hoverBackgroundColor = bg.brighter();
+            pressedBackgroundColor = bg.darker();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            if (getModel().isPressed()) {
+                g2.setColor(pressedBackgroundColor);
+            } else if (getModel().isRollover()) {
+                g2.setColor(hoverBackgroundColor);
+            } else {
+                g2.setColor(getBackground());
+            }
+
+            int arc = 25;
+            g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), arc, arc));
+
+            super.paintComponent(g2);
+            g2.dispose();
         }
     }
 }

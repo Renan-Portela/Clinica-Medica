@@ -9,11 +9,19 @@ import java.util.List;
 
 public class PacienteDAO {
     private Connection connection;
-    
+
+    /**
+     * Construtor. Inicializa a conexão com o banco de dados.
+     * Interage com as classes: DatabaseConnection.
+     */
     public PacienteDAO() {
         this.connection = DatabaseConnection.getInstance().getConnection();
     }
-    
+
+    /**
+     * Salva um novo paciente no banco de dados.
+     * Interage com as classes: Paciente, DatabaseConnection.
+     */
     public void save(Paciente paciente) throws SQLException {
         String sql = "INSERT INTO pacientes (cpf, nome, data_nascimento, endereco, telefone, historico_medico) " +
                     "VALUES (?, ?, ?, ?, ?, ?)";
@@ -29,7 +37,11 @@ public class PacienteDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Atualiza os dados de um paciente existente no banco de dados.
+     * Interage com as classes: Paciente, DatabaseConnection.
+     */
     public void update(Paciente paciente) throws SQLException {
         String sql = "UPDATE pacientes SET nome = ?, data_nascimento = ?, endereco = ?, " +
                     "telefone = ?, historico_medico = ? WHERE cpf = ?";
@@ -45,7 +57,11 @@ public class PacienteDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Remove um paciente do banco de dados com base no seu CPF.
+     * Interage com as classes: DatabaseConnection.
+     */
     public void delete(String cpf) throws SQLException {
         String sql = "DELETE FROM pacientes WHERE cpf = ?";
         
@@ -54,7 +70,11 @@ public class PacienteDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Busca e retorna um paciente específico pelo seu CPF.
+     * Interage com as classes: Paciente, DatabaseConnection.
+     */
     public Paciente findById(String cpf) throws SQLException {
         String sql = "SELECT * FROM pacientes WHERE cpf = ?";
         
@@ -69,7 +89,11 @@ public class PacienteDAO {
             }
         }
     }
-    
+
+    /**
+     * Busca e retorna uma lista de todos os pacientes cadastrados, ordenados por nome.
+     * Interage com as classes: Paciente, DatabaseConnection.
+     */
     public List<Paciente> findAll() throws SQLException {
         String sql = "SELECT * FROM pacientes ORDER BY nome";
         List<Paciente> pacientes = new ArrayList<>();
@@ -84,7 +108,11 @@ public class PacienteDAO {
         
         return pacientes;
     }
-    
+
+    /**
+     * Mapeia uma linha do ResultSet para um objeto do tipo Paciente.
+     * Interage com as classes: ResultSet, Paciente.
+     */
     private Paciente mapResultSet(ResultSet rs) throws SQLException {
         Paciente paciente = new Paciente();
         paciente.setCpf(rs.getString("cpf"));

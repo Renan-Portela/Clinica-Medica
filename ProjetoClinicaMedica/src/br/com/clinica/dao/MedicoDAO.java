@@ -9,11 +9,19 @@ import java.util.*;
 
 public class MedicoDAO {
     private Connection connection;
-    
+
+    /**
+     * Construtor. Inicializa a conexão com o banco de dados.
+     * Interage com as classes: DatabaseConnection.
+     */
     public MedicoDAO() {
         this.connection = DatabaseConnection.getInstance().getConnection();
     }
-    
+
+    /**
+     * Salva um novo médico no banco de dados.
+     * Interage com as classes: Medico, DatabaseConnection.
+     */
     public void save(Medico medico) throws SQLException {
         String sql = "INSERT INTO medicos (crm, nome, especialidade, dias_atendimento, " +
                     "horario_inicio, horario_fim, sala_atendimento) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -30,7 +38,11 @@ public class MedicoDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Atualiza os dados de um médico existente no banco de dados.
+     * Interage com as classes: Medico, DatabaseConnection.
+     */
     public void update(Medico medico) throws SQLException {
         String sql = "UPDATE medicos SET nome = ?, especialidade = ?, dias_atendimento = ?, " +
                     "horario_inicio = ?, horario_fim = ?, sala_atendimento = ? WHERE crm = ?";
@@ -47,7 +59,11 @@ public class MedicoDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Remove um médico do banco de dados com base no seu CRM.
+     * Interage com as classes: DatabaseConnection.
+     */
     public void delete(String crm) throws SQLException {
         String sql = "DELETE FROM medicos WHERE crm = ?";
         
@@ -56,7 +72,11 @@ public class MedicoDAO {
             stmt.executeUpdate();
         }
     }
-    
+
+    /**
+     * Busca e retorna um médico específico pelo seu CRM.
+     * Interage com as classes: Medico, DatabaseConnection.
+     */
     public Medico findById(String crm) throws SQLException {
         String sql = "SELECT * FROM medicos WHERE crm = ?";
         
@@ -71,7 +91,11 @@ public class MedicoDAO {
             }
         }
     }
-    
+
+    /**
+     * Busca e retorna uma lista de todos os médicos cadastrados, ordenados por nome.
+     * Interage com as classes: Medico, DatabaseConnection.
+     */
     public List<Medico> findAll() throws SQLException {
         String sql = "SELECT * FROM medicos ORDER BY nome";
         List<Medico> medicos = new ArrayList<>();
@@ -86,7 +110,13 @@ public class MedicoDAO {
         
         return medicos;
     }
-    
+
+    /**
+     * Mapeia uma linha do ResultSet para um objeto do tipo Medico.
+     * Interage com as classes: ResultSet, Medico.
+     */
+    // Lógica: Converte os dados de uma linha da tabela 'medicos' em um objeto Medico.
+    // O campo 'dias_atendimento', armazenado como texto, é dividido para formar a lista de dias.
     private Medico mapResultSet(ResultSet rs) throws SQLException {
         Medico medico = new Medico();
         medico.setCrm(rs.getString("crm"));
