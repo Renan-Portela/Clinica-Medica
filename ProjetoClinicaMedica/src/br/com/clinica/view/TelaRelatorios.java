@@ -20,8 +20,9 @@ import java.util.List;
 
 /**
  * Tela para geração de relatórios gerenciais sobre as operações da clínica.
- * A interface é dinâmica, exibindo os filtros apropriados para o tipo de
- * relatório selecionado pelo usuário, e permite interatividade na tabela de resultados.
+ * A interface é organizada com seleção de relatórios no canto superior esquerdo,
+ * filtros na área superior central e resultados na área principal.
+ * Permite interatividade na tabela de resultados para navegação detalhada.
  * Interage com as classes: RelatorioService, MedicoDAO, UITheme.
  */
 public class TelaRelatorios extends JFrame implements UITheme {
@@ -36,10 +37,20 @@ public class TelaRelatorios extends JFrame implements UITheme {
     private RelatorioService relatorioService;
     private MedicoDAO medicoDAO;
 
-    // Componentes dos painéis de filtro
+    // Componentes dos painéis de filtro - Consultas por Médico
     private JComboBox<Medico> cbMedicoFiltro;
     private JComboBox<String> cbMesFiltro;
     private JComboBox<Integer> cbAnoFiltro;
+
+    // Componentes dos painéis de filtro - Consultas Canceladas
+    private JComboBox<String> cbMesCanceladas;
+    private JComboBox<Integer> cbAnoCanceladas;
+
+    // Componentes dos painéis de filtro - Distribuição de Consultas
+    private JComboBox<String> cbMesDistribuicao;
+    private JComboBox<Integer> cbAnoDistribuicao;
+
+    // Componente do painel de filtro - Histórico do Paciente
     private JTextField txtPacienteFiltro;
 
     public TelaRelatorios() {
@@ -52,8 +63,7 @@ public class TelaRelatorios extends JFrame implements UITheme {
     private void inicializarInterface() {
         configurarJanela();
         getContentPane().add(criarHeader(), BorderLayout.NORTH);
-        getContentPane().add(criarPainelTiposRelatorio(), BorderLayout.WEST);
-        getContentPane().add(criarPainelCentral(), BorderLayout.CENTER);
+        getContentPane().add(criarPainelPrincipal(), BorderLayout.CENTER);
         getContentPane().add(criarPainelDeBotoes(), BorderLayout.SOUTH);
     }
     
@@ -72,36 +82,70 @@ public class TelaRelatorios extends JFrame implements UITheme {
         headerPanel.setPreferredSize(new Dimension(0, 80));
         headerPanel.setBorder(new EmptyBorder(20, 30, 20, 30));
         JLabel lblTitulo = new JLabel("RELATÓRIOS GERENCIAIS");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 26));
         lblTitulo.setForeground(CLEAN_WHITE);
         headerPanel.add(lblTitulo, BorderLayout.WEST);
         return headerPanel;
     }
     
     /**
-     * Cria o painel lateral com JRadioButtons para seleção do tipo de relatório.
-     * Este método utiliza Expressões Lambda para definir o comportamento de clique
-     * de cada botão, que consiste em limpar os resultados e alternar o painel
-     * de filtros visível através do CardLayout.
-     * @return O painel de seleção de relatórios.
+     * Cria o painel principal reorganizado com melhor distribuição de espaço.
+     * @return O painel principal configurado.
      */
-    private JPanel criarPainelTiposRelatorio() {
-        JPanel panel = new JPanel(new GridLayout(0, 1, 0, 5)); // Layout compacto
+    private JPanel criarPainelPrincipal() {
+        JPanel painelPrincipal = new JPanel(new BorderLayout(10, 10));
+        painelPrincipal.setBorder(new EmptyBorder(20, 20, 20, 20));
+        painelPrincipal.setBackground(LIGHT_GRAY);
+        
+        JPanel painelSuperior = new JPanel(new BorderLayout(15, 0));
+        painelSuperior.setOpaque(false);
+        
+        painelSuperior.add(criarPainelTiposRelatorioCompacto(), BorderLayout.WEST);
+        painelSuperior.add(criarPainelContainerFiltros(), BorderLayout.CENTER);
+        
+        JPanel painelResultados = criarPainelResultadosCompleto();
+        
+        painelPrincipal.add(painelSuperior, BorderLayout.NORTH);
+        painelPrincipal.add(painelResultados, BorderLayout.CENTER);
+        
+        return painelPrincipal;
+    }
+    
+    /**
+     * Cria o painel de seleção de tipos de relatório em formato compacto.
+     * @return O painel de radio buttons configurado.
+     */
+    private JPanel criarPainelTiposRelatorioCompacto() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder("Tipos de Relatório"),
-            new EmptyBorder(5, 10, 5, 10)
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(PRIMARY_BLUE, 1),
+                "Tipo de Relatório", 
+                0, 0, 
+                new Font("Segoe UI", Font.BOLD, 16), 
+                PRIMARY_BLUE
+            ),
+            new EmptyBorder(10, 15, 15, 15)
         ));
+        panel.setBackground(CLEAN_WHITE);
+        panel.setPreferredSize(new Dimension(320, 250));
         
         grupoRelatorios = new ButtonGroup();
         String[] nomesRelatorios = {
-            "Consultas por Médico", "Consultas Canceladas", "Histórico do Paciente",
-            "Pacientes Inativos (1 ano)", "Distribuição de Consultas"
+            "Consultas por Médico", 
+            "Consultas Canceladas", 
+            "Histórico do Paciente",
+            "Pacientes Inativos", 
+            "Distribuição de Consultas"
         };
 
         for (String nome : nomesRelatorios) {
             JRadioButton radio = new JRadioButton(nome);
             radio.setActionCommand(nome);
-            radio.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            radio.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+            radio.setOpaque(false);
+            radio.setAlignmentX(Component.LEFT_ALIGNMENT);
             
             radio.addActionListener(e -> {
                 limparResultados();
@@ -110,72 +154,60 @@ public class TelaRelatorios extends JFrame implements UITheme {
             
             grupoRelatorios.add(radio);
             panel.add(radio);
+            panel.add(Box.createVerticalStrut(10));
         }
         
         return panel;
     }
 
-    private JPanel criarPainelCentral() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panel.add(criarPainelContainerFiltros(), BorderLayout.NORTH);
-        panel.add(criarPainelResultados(), BorderLayout.CENTER);
-        return panel;
-    }
-
+    /**
+     * Cria o container de filtros com painéis específicos para cada tipo de relatório.
+     * @return O painel de filtros configurado.
+     */
     private JPanel criarPainelContainerFiltros() {
         cardLayoutFiltros = new CardLayout();
         painelContainerFiltros = new JPanel(cardLayoutFiltros);
+        painelContainerFiltros.setPreferredSize(new Dimension(0, 120));
         
-        JPanel filtroVazio = new JPanel();
-        filtroVazio.setBorder(BorderFactory.createTitledBorder("Filtros"));
-        filtroVazio.add(new JLabel("Nenhum filtro adicional necessário para este relatório."));
+        JPanel filtroVazio = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        filtroVazio.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Filtros",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 14),
+                DARK_TEXT
+            ),
+            new EmptyBorder(10, 10, 10, 10)
+        ));
+        filtroVazio.setBackground(CLEAN_WHITE);
+        JLabel lblInstrucao = new JLabel("Selecione um tipo de relatório para exibir os filtros disponíveis.");
+        lblInstrucao.setFont(new Font("Dialog", Font.PLAIN, 18));
+        filtroVazio.add(lblInstrucao);
         
-        painelContainerFiltros.add(criarPainelFiltroCompleto(), "Consultas por Médico");
-        painelContainerFiltros.add(criarPainelFiltroCompleto(), "Consultas Canceladas");
-        painelContainerFiltros.add(criarPainelFiltroCompleto(), "Distribuição de Consultas");
+        // Painéis específicos para cada tipo de relatório - NOMES CORRIGIDOS
+        painelContainerFiltros.add(criarPainelFiltroComMedico(), "Consultas por Médico");
+        painelContainerFiltros.add(criarPainelFiltroConsultasCanceladas(), "Consultas Canceladas");
         painelContainerFiltros.add(criarPainelFiltroPaciente(), "Histórico do Paciente");
-        painelContainerFiltros.add(filtroVazio, "Pacientes Inativos (1 ano)");
+        painelContainerFiltros.add(filtroVazio, "Pacientes Inativos");
+        painelContainerFiltros.add(criarPainelFiltroDistribuicaoConsultas(), "Distribuição de Consultas");
+        painelContainerFiltros.add(filtroVazio, "DEFAULT");
         
-        painelContainerFiltros.add(new JPanel(), "DEFAULT");
         cardLayoutFiltros.show(painelContainerFiltros, "DEFAULT");
         return painelContainerFiltros;
     }
 
-    private JPanel criarPainelFiltroCompleto() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBorder(BorderFactory.createTitledBorder("Filtros"));
+    /**
+     * Cria a área de resultados com tabela e resumo organizados verticalmente.
+     * @return O painel de resultados configurado.
+     */
+    private JPanel criarPainelResultadosCompleto() {
+        JPanel painelResultados = new JPanel(new BorderLayout(0, 10));
+        painelResultados.setOpaque(false);
         
-        panel.add(new JLabel("Médico:"));
-        cbMedicoFiltro = new JComboBox<>();
-        panel.add(cbMedicoFiltro);
-        
-        panel.add(new JLabel("Mês:"));
-        String[] meses = {"Todos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
-        cbMesFiltro = new JComboBox<>(meses);
-        panel.add(cbMesFiltro);
-
-        panel.add(new JLabel("Ano:"));
-        cbAnoFiltro = new JComboBox<>();
-        panel.add(cbAnoFiltro);
-        
-        return panel;
-    }
-    
-    private JPanel criarPainelFiltroPaciente() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.setBorder(BorderFactory.createTitledBorder("Filtros"));
-        panel.add(new JLabel("Nome ou CPF do Paciente:"));
-        txtPacienteFiltro = new JTextField(30);
-        panel.add(txtPacienteFiltro);
-        return panel;
-    }
-    
-    private JPanel criarPainelResultados() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
         table = new JTable();
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        table.setRowHeight(28);
+        table.setFont(new Font("Dialog", Font.PLAIN, 18));
+        table.setRowHeight(35);
         
         table.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
@@ -185,12 +217,173 @@ public class TelaRelatorios extends JFrame implements UITheme {
             }
         });
         
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane scrollTable = new JScrollPane(table);
+        scrollTable.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            "Resultados",
+            0, 0,
+            new Font("Segoe UI", Font.BOLD, 16),
+            DARK_TEXT
+        ));
         
-        txtResumo = new JTextArea(5, 0);
-        txtResumo.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        txtResumo = new JTextArea(4, 0);
+        txtResumo.setFont(new Font("Monospaced", Font.PLAIN, 16));
         txtResumo.setEditable(false);
-        panel.add(new JScrollPane(txtResumo), BorderLayout.SOUTH);
+        txtResumo.setBackground(LIGHT_GRAY);
+        
+        JScrollPane scrollResumo = new JScrollPane(txtResumo);
+        scrollResumo.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            "Resumo",
+            0, 0,
+            new Font("Segoe UI", Font.BOLD, 16),
+            DARK_TEXT
+        ));
+        scrollResumo.setPreferredSize(new Dimension(0, 140));
+        
+        painelResultados.add(scrollTable, BorderLayout.CENTER);
+        painelResultados.add(scrollResumo, BorderLayout.SOUTH);
+        
+        return painelResultados;
+    }
+
+    /**
+     * Cria painel de filtro completo (com médico, mês e ano).
+     * @return O painel de filtros configurado.
+     */
+    private JPanel criarPainelFiltroComMedico() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Filtros Disponíveis",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 14),
+                DARK_TEXT
+            ),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        panel.setBackground(CLEAN_WHITE);
+        
+        JLabel lblMedico = new JLabel("Médico:");
+        lblMedico.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblMedico);
+        cbMedicoFiltro = new JComboBox<>();
+        cbMedicoFiltro.setFont(new Font("Dialog", Font.PLAIN, 16));
+        cbMedicoFiltro.setPreferredSize(new Dimension(250, 30));
+        panel.add(cbMedicoFiltro);
+        
+        JLabel lblMes = new JLabel("Mês:");
+        lblMes.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblMes);
+        String[] meses = {"Todos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
+        cbMesFiltro = new JComboBox<>(meses);
+        cbMesFiltro.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbMesFiltro);
+
+        JLabel lblAno = new JLabel("Ano:");
+        lblAno.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblAno);
+        cbAnoFiltro = new JComboBox<>();
+        cbAnoFiltro.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbAnoFiltro);
+        
+        return panel;
+    }
+
+    /**
+     * Cria painel de filtro específico para Consultas Canceladas.
+     * @return O painel de filtros configurado.
+     */
+    private JPanel criarPainelFiltroConsultasCanceladas() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Filtros Disponíveis",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 14),
+                DARK_TEXT
+            ),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        panel.setBackground(CLEAN_WHITE);
+        
+        JLabel lblMes = new JLabel("Mês:");
+        lblMes.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblMes);
+        String[] meses = {"Todos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
+        cbMesCanceladas = new JComboBox<>(meses);
+        cbMesCanceladas.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbMesCanceladas);
+
+        JLabel lblAno = new JLabel("Ano:");
+        lblAno.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblAno);
+        cbAnoCanceladas = new JComboBox<>();
+        cbAnoCanceladas.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbAnoCanceladas);
+        
+        return panel;
+    }
+
+    /**
+     * Cria painel de filtro específico para Distribuição de Consultas.
+     * @return O painel de filtros configurado.
+     */
+    private JPanel criarPainelFiltroDistribuicaoConsultas() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Filtros Disponíveis",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 14),
+                DARK_TEXT
+            ),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        panel.setBackground(CLEAN_WHITE);
+        
+        JLabel lblMes = new JLabel("Mês:");
+        lblMes.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblMes);
+        String[] meses = {"Todos", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"};
+        cbMesDistribuicao = new JComboBox<>(meses);
+        cbMesDistribuicao.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbMesDistribuicao);
+
+        JLabel lblAno = new JLabel("Ano:");
+        lblAno.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblAno);
+        cbAnoDistribuicao = new JComboBox<>();
+        cbAnoDistribuicao.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(cbAnoDistribuicao);
+        
+        return panel;
+    }
+    
+    private JPanel criarPainelFiltroPaciente() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createTitledBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                "Filtros Disponíveis",
+                0, 0,
+                new Font("Segoe UI", Font.BOLD, 14),
+                DARK_TEXT
+            ),
+            new EmptyBorder(5, 10, 5, 10)
+        ));
+        panel.setBackground(CLEAN_WHITE);
+        
+        JLabel lblPaciente = new JLabel("Nome ou CPF do Paciente:");
+        lblPaciente.setFont(new Font("Dialog", Font.BOLD, 18));
+        panel.add(lblPaciente);
+        txtPacienteFiltro = new JTextField(25);
+        txtPacienteFiltro.setFont(new Font("Dialog", Font.PLAIN, 16));
+        panel.add(txtPacienteFiltro);
+        
         return panel;
     }
 
@@ -204,6 +397,7 @@ public class TelaRelatorios extends JFrame implements UITheme {
     
     private void carregarDadosFiltros() {
         try {
+            // Carregar dados para filtro com médico
             cbMedicoFiltro.addItem(null);
             medicoDAO.findAll().forEach(cbMedicoFiltro::addItem);
             cbMedicoFiltro.setRenderer(new DefaultListCellRenderer() {
@@ -214,10 +408,16 @@ public class TelaRelatorios extends JFrame implements UITheme {
                 }
             });
 
-            cbAnoFiltro.addItem(null); // Opção para "Todos"
+            // Carregar anos para todos os filtros de ano
+            cbAnoFiltro.addItem(null);
+            cbAnoCanceladas.addItem(null);
+            cbAnoDistribuicao.addItem(null);
+            
             int anoAtual = LocalDate.now().getYear();
             for (int i = anoAtual; i > anoAtual - 5; i--) {
                 cbAnoFiltro.addItem(i);
+                cbAnoCanceladas.addItem(i);
+                cbAnoDistribuicao.addItem(i);
             }
 
         } catch (SQLException e) {
@@ -235,23 +435,28 @@ public class TelaRelatorios extends JFrame implements UITheme {
         Map<String, Object> resultado;
 
         try {
-            int mes = cbMesFiltro.getSelectedIndex(); // 0 = Todos, 1 = Jan, ...
-            int ano = cbAnoFiltro.getSelectedItem() != null ? (Integer) cbAnoFiltro.getSelectedItem() : 0;
-
+            int mes, ano;
+            
             switch (tipoRelatorio) {
                 case "Consultas por Médico":
+                    mes = cbMesFiltro.getSelectedIndex();
+                    ano = cbAnoFiltro.getSelectedItem() != null ? (Integer) cbAnoFiltro.getSelectedItem() : 0;
                     resultado = relatorioService.gerarRelatorioConsultasPorMedico((Medico) cbMedicoFiltro.getSelectedItem(), mes, ano);
                     break;
                 case "Consultas Canceladas":
+                    mes = cbMesCanceladas.getSelectedIndex();
+                    ano = cbAnoCanceladas.getSelectedItem() != null ? (Integer) cbAnoCanceladas.getSelectedItem() : 0;
                     resultado = relatorioService.gerarRelatorioConsultasCanceladas(mes, ano);
                     break;
                 case "Histórico do Paciente":
                     resultado = relatorioService.gerarRelatorioHistoricoPaciente(txtPacienteFiltro.getText());
                     break;
-                case "Pacientes Inativos (1 ano)":
+                case "Pacientes Inativos":
                     resultado = relatorioService.gerarRelatorioPacientesInativos();
                     break;
                 case "Distribuição de Consultas":
+                    mes = cbMesDistribuicao.getSelectedIndex();
+                    ano = cbAnoDistribuicao.getSelectedItem() != null ? (Integer) cbAnoDistribuicao.getSelectedItem() : 0;
                     resultado = relatorioService.gerarRelatorioDistribuicaoConsultas(mes, ano);
                     break;
                 default:
@@ -279,16 +484,16 @@ public class TelaRelatorios extends JFrame implements UITheme {
         try {
             if (nomeColuna.equals("Paciente")) {
                 String cpf = (String) model.getValueAt(linha, getColunaPorNome("CPF Paciente"));
-                new TelaPacientes().setVisible(true); // Funcionalidade de focar no paciente precisaria ser adicionada
+                new TelaPacientes().setVisible(true);
             } else if (nomeColuna.equals("Médico")) {
                 String crm = (String) model.getValueAt(linha, getColunaPorNome("CRM Médico"));
-                new TelaMedicos().setVisible(true); // Funcionalidade de focar no médico precisaria ser adicionada
+                new TelaMedicos().setVisible(true);
             } else {
                 Long idConsulta = (Long) model.getValueAt(linha, getColunaPorNome("ID Consulta"));
                 new TelaGerenciarConsultas(idConsulta).setVisible(true);
             }
         } catch (IllegalArgumentException ex) {
-            // Ignora cliques em colunas sem ID (ex: relatórios de pacientes inativos)
+            // Ignora cliques em colunas sem ID
         }
     }
 
@@ -310,7 +515,7 @@ public class TelaRelatorios extends JFrame implements UITheme {
                 table.getColumnModel().getColumn(index).setMaxWidth(0);
                 table.getColumnModel().getColumn(index).setPreferredWidth(0);
             } catch (IllegalArgumentException e) {
-                // A coluna não existe neste relatório, o que é normal.
+                // A coluna não existe neste relatório
             }
         }
     }
@@ -322,10 +527,10 @@ public class TelaRelatorios extends JFrame implements UITheme {
     
     private RoundedButton criarBotaoAcao(String texto, Color cor, ActionListener acao) {
         RoundedButton botao = new RoundedButton(texto);
-        botao.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        botao.setFont(new Font("Segoe UI", Font.BOLD, 16));
         botao.setForeground(CLEAN_WHITE);
         botao.setBackground(cor);
-        botao.setPreferredSize(new Dimension(180, 50));
+        botao.setPreferredSize(new Dimension(200, 55));
         botao.addActionListener(acao);
         return botao;
     }
