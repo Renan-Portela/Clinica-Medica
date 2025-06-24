@@ -1,4 +1,4 @@
-# 🏥 ClinicSync - Sistema de Gestão de Clínica Médica
+# 🏥 CliniSync - Sistema de Gestão de Clínica Médica
 
 > **Sistema desktop desenvolvido em Java para gerenciamento completo de clínicas médicas**  
 > *Projeto Acadêmico - 3º Período ADS | Engenharia de Software & Banco de Dados I*
@@ -30,7 +30,7 @@
 
 ## 🎯 Visão Geral
 
-O **ClinicSync** é um sistema desktop robusto desenvolvido para otimizar a gestão de clínicas médicas, oferecendo uma solução completa para agendamento de consultas, gerenciamento de pacientes e médicos, além de relatórios gerenciais abrangentes.
+O **CliniSync** é um sistema desktop robusto desenvolvido para otimizar a gestão de clínicas médicas, oferecendo uma solução completa para agendamento de consultas, gerenciamento de pacientes e médicos, além de relatórios gerenciais abrangentes.
 
 ### 🌟 Principais Diferenciais
 
@@ -130,7 +130,7 @@ O projeto segue uma **arquitetura em camadas** bem estruturada:
 1. **Clone o repositório**
    ```bash
    git clone https://github.com/Renan-Portela/Clinica-Medica.git
-   cd ClinicSync
+   cd CliniSync
    ```
 
 2. **Configuração do MySQL com Docker**
@@ -213,7 +213,7 @@ CREATE TABLE consultas (
 
 ### 🎯 Diagrama Entidade-Relacionamento
 
-![Diagrama ER - Sistema ClinicSync](/assets/diagrama%20entidade%20relacionamento%20-%20DER.png)
+![Diagrama ER - Sistema CliniSync](/assets/diagrama%20entidade%20relacionamento%20-%20DER.png)
 
 ### 🔑 Relacionamentos
 
@@ -230,7 +230,7 @@ CREATE TABLE consultas (
 - **Navegação Intuitiva**: Acesso direto a todas as funcionalidades
 - **Informações do Sistema**: Header com logo e informações da clínica
 
-![Tela Principal - ClinicSync](/assets/Tela%20Principal%20com%20logo.png)
+![Tela Principal - CliniSync](/assets/Tela%20Principal%20com%20logo.png)
 
 ### 📅 Agenda Visual
 - **Calendário Semanal**: Visualização clara da agenda médica
@@ -238,7 +238,7 @@ CREATE TABLE consultas (
 - **Mini-calendário**: Navegação rápida entre datas
 - **Filtros Avançados**: Por médico, paciente ou período
 
-![Agenda Visual - ClinicSync](/assets/Tela%20de%20Agenda.png)
+![Agenda Visual - CliniSync](/assets/Tela%20de%20Agenda.png)
 
 ### 📋 Formulários CRUD
 - **Validação em Tempo Real**: Feedback imediato para o usuário
@@ -246,10 +246,10 @@ CREATE TABLE consultas (
 - **Busca Inteligente**: Sistema de filtros e pesquisa avançada
 
 #### Gerenciamento de Médicos
-![CRUD Médicos - ClinicSync](/assets/CRUD%20Médicos.png)
+![CRUD Médicos - CliniSync](/assets/CRUD%20Médicos.png)
 
 #### Gerenciamento de Pacientes
-![CRUD Pacientes - ClinicSync](/assets/CRUD%20Pacientes.png)
+![CRUD Pacientes - CliniSync](/assets/CRUD%20Pacientes.png)
 
 ### 📊 Sistema de Relatórios
 - **Interface Unificada**: Todos os relatórios em uma tela única
@@ -257,7 +257,7 @@ CREATE TABLE consultas (
 - **Exportação**: Possibilidade de exportar dados para análise externa
 
 <!-- Inserir aqui a imagem do sistema de relatórios -->
-![Sistema de Relatórios - ClinicSync](/assets/Tela%20Relatórios.png)
+![Sistema de Relatórios - CliniSync](/assets/Tela%20Relatórios.png)
 
 ---
 
@@ -378,7 +378,7 @@ Este artigo contém instruções detalhadas para:
 
 ### 🏆 **Desenvolvido com 💙 pela Equipe JKLR²**
 
-**Sistema ClinicSync** - *Inovando a gestão médica através da tecnologia*
+**Sistema CliniSync** - *Inovando a gestão médica através da tecnologia*
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-black.svg)](https://github.com/Renan-Portela/Clinica-Medica.git)
 [![Apresentação](https://img.shields.io/badge/Apresentação-25/06/2024-blue.svg)](#)
