@@ -302,7 +302,7 @@ CREATE TABLE consultas (
 | **José Vitor** | [GitHub](https://github.com/JosVitorFerreiraDosSantosJV) | [LinkedIn](https://www.linkedin.com/in/josé-vitor-ferreira-dos-santos/) | DevOps & Infrastructure |
 | **Karolina Zimmerman** | [GitHub](https://github.com/404) | [LinkedIn](https://www.linkedin.com/in/karolina-zimmermann-4491b5287/) | Frontend & UX/UI |
 | **Lucas Alves** | [GitHub](https://github.com/Lucas-Alves-Paula) | [LinkedIn](https://www.linkedin.com/in/lucas-alves-a02514178/) | Full-Stack & Architecture |
-| **Ryan Alves** | [GitHub](https://github.com/404) | [LinkedIn](https://www.linkedin.com/in/ryanaguilherme/) | Testing & QA |
+| **Ryan Alves** | [GitHub](https://github.com/RyanAlvesG1) | [LinkedIn](https://www.linkedin.com/in/ryanaguilherme/) | Testing & QA |
 | **Renan Portela** | [GitHub](https://github.com/Renan-Portela) | [LinkedIn](https://www.linkedin.com/in/portela-renan/) | Backend & Database |
 
 ---
